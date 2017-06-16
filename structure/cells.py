@@ -45,8 +45,8 @@ class Cells(object):
         idx = self.id_to_idx(mother)
         angle = rand.rand()*np.pi
         dr = np.array((EPS*np.cos(angle),EPS*np.sin(angle)))
-        centre1 = self.mesh.centres[mother] + dr
-        centre2 = self.mesh.centres[mother] - dr
+        centre1 = self.mesh.centres[idx] + dr
+        centre2 = self.mesh.centres[idx] - dr
         gm = self.mesh.ghost_mask[idx]
         self.mesh.add(centre1,gm)
         self.mesh.add(centre2,gm)

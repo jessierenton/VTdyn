@@ -41,7 +41,7 @@ class Cells(object):
         return Cells(self.mesh.copy(),self.cell_ids.copy(),self.properties.copy())
         
     def __len__(self):
-        return self.mesh.N_tot
+        return self.mesh.N_cells
     
     def cell_division(self,mother,rand):
         idx = self.id_to_idx(mother)
@@ -49,8 +49,9 @@ class Cells(object):
         dr = np.array((EPS*np.cos(angle),EPS*np.sin(angle)))
         centre1 = self.mesh.centres[idx] + dr
         centre2 = self.mesh.centres[idx] - dr
-        self.mesh.add(centre1)
-        self.mesh.add(centre2)
+        gm = self.mesh.ghost_mask[idx]
+        self.mesh.add(centre1,gm)
+        self.mesh.add(centre2,gm)
         self.cell_ids = np.delete(self.cell_ids,idx)
         self.mesh.remove(idx)
         self.cell_ids = np.append(self.cell_ids,(self.next_id,self.next_id+1))
@@ -94,12 +95,12 @@ class Cells(object):
         ax.yaxis.set_major_locator(plt.NullLocator())
         vor = self.mesh.voronoi()
         cells_by_vertex = np.array(vor.regions)[np.array(vor.point_region)]
-        verts = [vor.vertices[cv] for cv in cells_by_vertex]
+        verts = [vor.vertices[cv] for cv in cells_by_vertex[self.mesh.ghost_mask]]
         coll = PolyCollection(verts,linewidths=[2.])
         ax.add_collection(coll)
         if label:
             for i, coords in enumerate(self.mesh.centres):
-                plt.text(coords[0],coords[1],str(self.cell_ids[i]))
+                if self.mesh.ghost_mask[i]: plt.text(coords[0],coords[1],str(self.cell_ids[i]))
                 
         plt.show()
 

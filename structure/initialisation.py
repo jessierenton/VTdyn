@@ -1,10 +1,11 @@
 import numpy as np
-from mesh import Mesh
 
-def init_centres(N_cell_across,N_cell_up,noise,rand):
+def init_centres(N_cell_across,N_cell_up,ghost_num,noise,rand):
     """generates positions of cell centres arranged (approximately) hexagonally 
     surrounded a border by ghost nodes
     """
+    N_cell_across += 2*ghost_num
+    N_cell_up += 2*ghost_num
     assert(N_cell_up % 2 == 0)  # expect even number of rows
     dx, dy = 1.0/N_cell_across, 1.0/(N_cell_up/2)
     x = np.arange(-0.5+dx/4, 0.5, dx)
@@ -23,8 +24,10 @@ def init_centres(N_cell_across,N_cell_up,noise,rand):
 
     centres = centres.reshape(-1, 2)*np.array([width, height])
     centres += rand.rand(N_cell_up*N_cell_across, 2)*noise
-
-    return centres
-
-def hex_mesh(N_across,N_up,noise,rand):
-    return Mesh(init_centres(N_across,N_up,noise,rand))
+    
+    ghost_mask = np.full(N_cell_across*N_cell_up,True, dtype=bool)
+    ghost_mask[:N_cell_up*ghost_num] = False
+    ghost_mask[(N_cell_across-ghost_num)*N_cell_up:] = False
+    for i in range(1,N_cell_across):
+        ghost_mask[N_cell_up*i-ghost_num:N_cell_up*i+ghost_num] = False 
+    return centres, ghost_mask

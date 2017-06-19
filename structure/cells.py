@@ -84,7 +84,7 @@ class Cells(object):
         ax.set_ylim(ymin,ymax)
         ax.xaxis.set_major_locator(plt.NullLocator())
         ax.yaxis.set_major_locator(plt.NullLocator())
-        vor = self.mesh.voronoi(self.mesh.centres)
+        vor = self.mesh.voronoi()
         cells_by_vertex = np.array(vor.regions)[np.array(vor.point_region)]
         verts = [vor.vertices[cv] for cv in cells_by_vertex[self.mesh.ghost_mask]]
         coll = PolyCollection(verts,linewidths=[2.])

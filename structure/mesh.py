@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.spatial import Delaunay, Voronoi, voronoi_plot_2d
+from scipy.spatial import Delaunay, Voronoi, voronoi_plot_2d, ConvexHull
 import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
 import matplotlib.patches as patches
@@ -63,9 +63,14 @@ class Mesh(object):
                 plt.text(coords[0],coords[1],str(i))
         plt.show()
         
-    def voronoi(self,centres):
-        return _voronoi(centres)
+    def voronoi(self):
+        return _voronoi(self.centres)
+    
+    def convex_hull(self):
+        return _convex_hull(self.centres())
                     
+def _convex_hull(centres):
+    return convex_hull(centres)
        
 def _voronoi(centres):
     return Voronoi(centres)

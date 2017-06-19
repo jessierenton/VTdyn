@@ -67,9 +67,9 @@ def simulation_with_division(cells,dt,N_steps,rand=rand):
 def run(simulation,N_step,skip):
     return [cells.copy() for cells in itertools.islice(simulation,0,N_step,skip)]
 
-timend = 10.0
+timend = 20.0
 timestep = 1.0
-centres, ghost_mask = init_centres(4,4,1,0.01,rand)
+centres, ghost_mask = init_centres(4,4,0,0.01,rand)
 mesh = Mesh(centres,ghost_mask)
 cells = Cells(mesh,rand=rand)
 update_progress(0)

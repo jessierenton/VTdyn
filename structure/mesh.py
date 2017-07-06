@@ -13,26 +13,23 @@ class Mesh(object):
                 centres = array of (x,y) values for both cell and ghost node positions
                 ghost_mask = boolean array such that ghost_mask = True if centre represents a cell, False if a ghost_node
                 vnv = contains neighbour information for cells (extract using neighbours method)
-                tri = (N_tot,3) array containing indices of centres forming triangles (used for plot_tri method)
+                tri = (N_mesh,3) array containing indices of centres forming triangles (used for plot_tri method)
     """
     
-    def __init__(self,centres,ghost_mask):
-        self.N_cells = sum(ghost_mask)
-        self.N_tot = len(centres)
+    def __init__(self,centres):
+        self.N_mesh = len(centres)
         self.centres = centres
-        self.ghost_mask = ghost_mask
         self.vnv, self.tri = _delaunay(centres)
     
     def __len__(self):
-        return self.N_tot
+        return self.N_mesh
     
     def copy(self):
         return copy.deepcopy(self)
     
     def update(self):
         self.vnv, self.tri = _delaunay(self.centres)
-        self.N_cells = sum(self.ghost_mask)
-        self.N_tot = len(self.centres)
+        self.N_mesh = len(self.centres)
     
     def extreme_point(self):
         return np.max(self.distances())
@@ -43,13 +40,11 @@ class Mesh(object):
     def move(self, dr):
         self.centres = self.centres + dr
     
-    def add(self,pos,gm=True):
+    def add(self,pos):
         self.centres = np.append(self.centres,[pos],0)
-        self.ghost_mask = np.append(self.ghost_mask,gm)
     
     def remove(self,idx):
         self.centres = np.delete(self.centres,idx,0)
-        self.ghost_mask = np.delete(self.ghost_mask,idx)
     
     def neighbours(self,k):
         return self.vnv[1][self.vnv[0][k]:self.vnv[0][k+1]]
@@ -76,5 +71,5 @@ def _delaunay(centres):
 
 if __name__ == '__main__':
     rand = np.random.RandomState(123456)
-    centres, ghost_mask = init_centres(6,6,3,0.01,rand)
-    mesh = Mesh(centres,ghost_mask)
+    centres = init_centres(6,6,3,0.01,rand)
+    mesh = Mesh(centres)

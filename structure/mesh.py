@@ -18,11 +18,19 @@ class Mesh(object):
     
     def __init__(self,centres):
         self.N_mesh = len(centres)
+        self.mesh_ids = np.arange(self.N_mesh)
         self.centres = centres
         self.vnv, self.tri = _delaunay(centres)
+        self.next_id = self.N_mesh
     
     def __len__(self):
         return self.N_mesh
+    
+    def index(self,id):
+        return np.where(self.mesh_ids==id)
+    
+    def centre(self,id):
+        return self.centres[index(id)]
     
     def copy(self):
         return copy.deepcopy(self)
@@ -42,14 +50,20 @@ class Mesh(object):
     
     def add(self,pos):
         self.centres = np.append(self.centres,[pos],0)
+        self.mesh_ids = np.append(self.mesh_ids,self.next_ids)
+        self.next_id += 1
+        return self.next_id-1
     
-    def remove(self,idx):
-        self.centres = np.delete(self.centres,idx,0)
+    def remove(self,mesh_id):
+        index = self.index(id)
+        self.centres = np.delete(self.centres,index,0)
+        self.mesh_ids = np.delete(self.mesh_ids,index)
     
     def neighbours(self,k):
         return self.vnv[1][self.vnv[0][k]:self.vnv[0][k+1]]
     
-    def seperation(self,i,j):
+    def seperation(self,id_i,id_j):
+        i,j = index(id_i), index(id_j) 
         distance = np.sqrt(np.sum(((self.centres[i]-self.centres[j]))**2))      
         return distance, (self.centres[i]-self.centres[j])/distance
         

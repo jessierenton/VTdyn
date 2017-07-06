@@ -1,0 +1,77 @@
+\documentclass[a4paper]{article}
+
+%% Language and font encodings
+\usepackage[english]{babel} 
+\usepackage[utf8x]{inputenc} 
+\usepackage[T1]{fontenc}
+
+%% Sets page size and margins
+\usepackage[a4paper,top=1.5cm,bottom=2cm,left=2cm,right=2cm,marginparwidth=1.75cm]{geometry}
+
+%% Useful packages
+\usepackage{amsmath,subcaption,amsfonts} 
+\usepackage{graphicx} 
+\usepackage[colorinlistoftodos]{todonotes} 
+\usepackage[colorlinks=true, allcolors=blue]{hyperref} 
+\title{Cell-centred model of an epithelium} 
+\author{Jessie Renton}
+
+\begin{document} 
+\maketitle
+
+\section{Epithelial tissues}
+Epithelia consist of sheets of cells each of which can undergo processes of proliferation, apoptosis and motility. These are the tissues which form surfaces of the body and organs. Rates of cell replacement in epithelia tend to be much higher than in other tissues and as such the majority of cancers occur in epitheila, known as `carcinomas'. As such the invasion dynamics of mutant cells in epithelia is of particular interest medically.
+
+There are a number of individual-based models of epithelia, both on- and off-lattice. Here we focus on a mechanical, cell-centred model: the Voronoi Tesselation (VT) model. 
+
+\section{Voronoi Tesselation model}
+
+This model is part of a class of cell-centre models in which a tissue if represented by a set of points corresponding to the centres of individual cells. These cells move freely in space and exert forces on one another. Different models in this class are characterised by the force laws and the mechanism for determining cell neighbours. Here we broadly follow the [Meinke] model with some adjustments from [Leeuwen].
+
+\subsection{Force law}
+The assumption in this model is that cells act as if they are connected to their neighbours by a network of springs, such that 
+\begin{equation} \mathbf{F}_{ij}(t) = \mu_{ij}\hat{\mathbf{r}}_{ij}(t)(\vert \mathbf{r}_{ij}(t) \vert -s_{ij}(t))
+	\end{equation}
+is the force exerted by cell $j$ on its neighbour $i$. Here $\mu_{ij}$ are the spring constants and $\mathbf{r}_{ij}=\mathbf{r}_{i}-\mathbf{r}_ {j}$, where $\mathbf{r}_i$ is the position vector of cell $i$ and $\hat{\mathbf{r}}_{ij}$ is the corresponding unit vector. The natural seperation between cells $s_{ij}(t)=s$ except for newborn sister cells which have a natural seperation of $\epsilon \ll 1$ when they are born and this increases linearly to $s$ over 1 h.
+
+The total force acting on cell $i$ is then
+\begin{equation}
+	\mathbf{F}_i(t)= \sum_{j \in \mathcal{N}_i(t)}\mathbf{F}_{ij}
+\end{equation}
+where $\mathcal{N}_i(t)$ is the set of cells neighbouring $i$.
+
+By assuming that motion is overdamped due to high levels of friction we obtain the equation of motion for each cell in the form of a first order differential equation
+\begin{equation}
+	\eta \frac{d\mathbf{r}_i}{dt}= \mathbf{F}_i(t)
+\end{equation}
+where $eta$ is the damping constant. This is solved numerically using
+\begin{equation}
+	\mathbf{r}_i(t+\delta t)= \mathbf{r}_i(t)+\frac{\delta t}{\eta} \mathbf{F}_i
+\end{equation}
+
+where $\delta t$ is a sufficiently small time step for numerical stability.
+\subsection{Neighbours}
+In the VT model we define the neighbour connections between cells to be the Delaunay Triangulation (DT) on the set of cell-centres. The dual of the DT is the Voronoi Tesselation which divides the plane into polygons, where each polygon is defined as the the region of the plane closest to its generator (i.e. cell-centre) than any other. Each cell can therefore be represented as a distinct region with a well-defined area. (except on the boundary) 
+
+As the VT/DT are defined by the cell-centre positions, they must be recalculated after every timestep.
+
+\subsection{Cell cycle}
+
+\subsection{Proliferation and apoptosis}
+Once a cell $i$ reaches the end of its cycle it divides resulting in two new daughter cells. These cells are placed a distance $\epsilon$ from each other, equidistant from their mother across a random axis. 
+
+It is also possible for cells to die without reproducing, this is known as cell apoptosis, and could occur due to x,y,z... homeostasis? In this case the relevent cell-centre is simply removed from the set.
+
+\section{Simulation}
+\begin{enumerate}
+	\item DT is performed in order to obtain the neighbour set of each cell
+	\item forces are calculated and cells are moved accordingly
+	\item cells divide if they have reached the end of their cell cycle
+	\item cell apoptosis occurs
+	\item cells age
+\end{enumerate}
+ 
+\bibliographystyle{ieeetr} 
+\bibliography{sample}
+
+\end{document}

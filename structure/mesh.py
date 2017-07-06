@@ -33,6 +33,12 @@ class Mesh(object):
         self.vnv, self.tri = _delaunay(self.centres)
         self.N_cells = sum(self.ghost_mask)
         self.N_tot = len(self.centres)
+    
+    def extreme_point(self):
+        return np.max(self.distances())
+    
+    def distances(self):
+        return np.array([np.sqrt(r[0]**2+r[1]**2) for r in self.centres])
         
     def move(self, dr):
         self.centres = self.centres + dr
@@ -52,17 +58,6 @@ class Mesh(object):
         distance = np.sqrt(np.sum(((self.centres[i]-self.centres[j]))**2))      
         return distance, (self.centres[i]-self.centres[j])/distance
         
-    def plot_tri(self,label=False):
-        real_centres = self.centres[self.ghost_mask]
-        ghost_centres = self.centres[~self.ghost_mask]        
-        plt.triplot(self.centres[:,0], self.centres[:,1], self.tri.copy())
-        plt.plot(real_centres[:,0], real_centres[:,1], 'o')
-        plt.plot(ghost_centres[:,0],ghost_centres[:,1], 'o')
-        if label:
-            for i, coords in enumerate(self.centres):
-                plt.text(coords[0],coords[1],str(i))
-        plt.show()
-        
     def voronoi(self):
         return _voronoi(self.centres)
     
@@ -70,7 +65,7 @@ class Mesh(object):
         return _convex_hull(self.centres())
                     
 def _convex_hull(centres):
-    return convex_hull(centres)
+    return ConvexHull(centres)
        
 def _voronoi(centres):
     return Voronoi(centres)

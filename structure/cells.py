@@ -8,6 +8,7 @@ import seaborn as sns
 
 sns.set_style("white")
 
+
 #cell-cycle times hours
 T_G1, T_other = 2,10
 V_G1 = 1 #variance in G1-time
@@ -18,27 +19,25 @@ EPS = 0.05
 
 class Cells(object):
     
-    def __init__(self,mesh,cell_ids=None,properties=None,rand=None,):
+    def __init__(self,mesh,cell_ids=None,properties={},rand=None,):
         self.mesh = mesh
-        if properties is None:
-            self.properties = {}
-            self.properties['sister'] = np.full(self.mesh.N_tot,-1,dtype=int)
-            self.properties['lifespan'] = rand.rand(self.mesh.N_tot)*10
-            self.properties['deathtime'] = np.full(self.mesh.N_tot,np.inf)
-            self.properties['age'] = np.full(self.mesh.N_tot,np.inf)
-        else: self.properties = properties
-        if cell_ids is None: self.cell_ids = np.arange(mesh.N_tot)
-        else: self.cell_ids = cell_ids
+        self.properties = properties
+        if cell_ids is None: self.mesh.cell_ids = np.arange(mesh.N_tot)
+        else: self.mesh.cell_ids = mesh.cell_ids
         self.next_id = mesh.N_tot
     
+    def by_meshidx(self,property,ghosts=True):
+        if ghosts: return self.properties[property][self.mesh.cell_ids]
+        else: return self.properties[property][self.mesh.cell_ids][self.mesh.ghost_mask]
+    
     def id_to_idx(self,id):
-        return np.where(self.cell_ids == id)[0][0]
+        return np.where(self.mesh.cell_ids == id)[0][0]
         
-    def idx_to_id(idx):
-        return self.cell_ids[idx]
+    def idx_to_id(self,idx):
+        return self.mesh.cell_ids[idx]
         
     def copy(self):
-        return Cells(self.mesh.copy(),self.cell_ids.copy(),self.properties.copy())
+        return Cells(self.mesh.copy(),self.mesh.cell_ids.copy(),self.properties.copy())
         
     def __len__(self):
         return self.mesh.N_cells
@@ -52,23 +51,26 @@ class Cells(object):
         gm = self.mesh.ghost_mask[idx]
         self.mesh.add(centre1,gm)
         self.mesh.add(centre2,gm)
-        self.cell_ids = np.delete(self.cell_ids,idx)
+        self.mesh.cell_ids = np.delete(self.mesh.cell_ids,idx)
         self.mesh.remove(idx)
-        self.cell_ids = np.append(self.cell_ids,(self.next_id,self.next_id+1))
+        self.mesh.cell_ids = np.append(self.mesh.cell_ids,(self.next_id,self.next_id+1))
         self.properties['sister'] = np.append(self.properties['sister'],[self.next_id+1,self.next_id])
         self.next_id += 2
         self.properties['age'] = np.append(self.properties['age'],[0.0,0.0])
         self.properties['lifespan'] = np.append(self.properties['lifespan'],assign_lifetime(2,rand))
         self.properties['deathtime'] = np.append(self.properties['deathtime'],assign_deathtime(2,rand))
+        for key in self.properties:
+            if key != 'age' and key != 'lifespan' and key != 'deathtime' and key != 'sister':
+                self.properties[key] = np.append(self.properties[key],[self.properties[key][mother]]*2)
         
     def cell_apoptosis(self,dead):
         idx = self.id_to_idx(dead)
-        self.cell_ids = np.delete(self.cell_ids,idx)
+        self.mesh.cell_ids = np.delete(self.mesh.cell_ids,idx)
         self.mesh.remove(idx)
     
     def pref_sep(self,i,j):
-        age_i = self.properties['age'][self.cell_ids[i]]
-        if age_i < 1.0 and self.properties['age'][self.cell_ids[i]] == j:
+        age_i = self.properties['age'][self.mesh.cell_ids[i]]
+        if age_i < 1.0 and self.properties['sister'][self.mesh.cell_ids[i]] == self.mesh.cell_ids[j]:
             return age_i*(L0-2*EPS) +2*EPS
         else: return L0
     
@@ -83,26 +85,6 @@ class Cells(object):
         voronoi_plot_2d(vor)
         plt.show()
     
-    def plot_cells(self,label=False):
-        fig = plt.Figure()        
-        ax = plt.axes()
-        plt.axis('scaled')
-        xmin,xmax = min(self.mesh.centres[:,0]), max(self.mesh.centres[:,0])
-        ymin,ymax = min(self.mesh.centres[:,1]), max(self.mesh.centres[:,1])      
-        ax.set_xlim(xmin,xmax)
-        ax.set_ylim(ymin,ymax)
-        ax.xaxis.set_major_locator(plt.NullLocator())
-        ax.yaxis.set_major_locator(plt.NullLocator())
-        vor = self.mesh.voronoi()
-        cells_by_vertex = np.array(vor.regions)[np.array(vor.point_region)]
-        verts = [vor.vertices[cv] for cv in cells_by_vertex[self.mesh.ghost_mask]]
-        coll = PolyCollection(verts,linewidths=[2.])
-        ax.add_collection(coll)
-        if label:
-            for i, coords in enumerate(self.mesh.centres):
-                if self.mesh.ghost_mask[i]: plt.text(coords[0],coords[1],str(self.cell_ids[i]))
-                
-        plt.show()
 
 def assign_lifetime(num_cells,rand):
     lifetimes = rand.normal(T_G1,np.sqrt(V_G1),num_cells)
@@ -110,5 +92,5 @@ def assign_lifetime(num_cells,rand):
     return lifetimes + T_other
     
 def assign_deathtime(num_cells,rand):
-    return rand.exponential(12,num_cells)
+    return 12. + rand.exponential(1,num_cells)
     

@@ -3,9 +3,11 @@ import numpy as np
 import itertools
 import mesh
 from mesh import Mesh
-from cells import Cells
+from cells import *
 from functools import partial
 from initialisation import *
+from plot import *
+
 
 L0 = 1.0
 EPS = 0.05
@@ -13,9 +15,9 @@ EPS = 0.05
 MU = -50.
 ETA = 1.0
 dt = 0.005 #hours
-r_max = 1000.0 #prevents long edges forming in delaunay tri for border cells
+r_max = 2.5 #prevents long edges forming in delaunay tri for border cells
 
-rand = np.random.RandomState(123456)
+rand = np.random.RandomState()
 
 def update_progress(progress):
     barLength = 20 # Modify this to change the length of the progress bar
@@ -49,7 +51,16 @@ def force_i(mesh,i):
     
 def dr(mesh,dt):
     return (dt/ETA)*np.array([force_i(mesh,i) for i in range(0,mesh.N_tot)])
-    
+
+
+def init_properties(cells,rand=rand):
+    N = cells.mesh.N_tot
+    cells.properties['sister'] = np.full(N,-1,dtype=int)
+    cells.properties['lifespan'] = assign_lifetime(N,rand)
+    cells.properties['deathtime'] = assign_deathtime(N,rand)
+    cells.properties['age'] = np.zeros(N,dtype=float)
+    cells.properties['clones'] = np.array(cells.mesh.cell_ids)
+
 def simulation_no_division(cells,dt,rand=rand):
     while True:
         cells.mesh.move(dr(cells.mesh,dt))
@@ -61,7 +72,7 @@ def simulation_with_division(cells,dt,N_steps,rand=rand):
     while True:
         step += 1
         cells.mesh.move(dr(cells.mesh,dt))
-        ready = cells.cell_ids[np.where(cells.properties['lifespan'][cells.cell_ids]<0.0)[0]]
+        ready = cells.mesh.cell_ids[np.where(cells.properties['lifespan'][cells.mesh.cell_ids]<0.0)[0]]
         for mother in ready:
             cells.cell_division(mother,rand)
         cells.update(dt)
@@ -73,10 +84,10 @@ def simulation_death_and_division(cells,dt,N_steps,rand=rand):
     while True:
         step += 1
         cells.mesh.move(dr(cells.mesh,dt))
-        birthready = cells.cell_ids[np.where(cells.properties['lifespan'][cells.cell_ids]<0.0)[0]]
+        birthready = cells.mesh.cell_ids[np.where(cells.properties['lifespan'][cells.mesh.cell_ids]<0.0)[0]]
         for mother in birthready:
             cells.cell_division(mother,rand)
-        deathready = cells.cell_ids[np.where(cells.properties['deathtime'][cells.cell_ids]<0.0)[0]]
+        deathready = cells.mesh.cell_ids[np.where(cells.properties['deathtime'][cells.mesh.cell_ids]<0.0)[0]]
         for dead in deathready:
             cells.cell_apoptosis(dead)
         cells.update(dt)
@@ -86,11 +97,15 @@ def simulation_death_and_division(cells,dt,N_steps,rand=rand):
 def run(simulation,N_step,skip):
     return [cells.copy() for cells in itertools.islice(simulation,0,N_step,skip)]
 
-timend = 10.0
+timend = 100.
 timestep = 0.01
-mesh = Mesh(*init_centres(6,6,2,0.01,rand))
+mesh = Mesh(*init_centres(6,6,2,0.001,rand))
 cells = Cells(mesh,rand=rand)
+init_properties(cells)
+cells.properties['type']=np.zeros(cells.mesh.N_tot,dtype=int)
+cells.properties['type'][rand.choice(cells.mesh.cell_ids[cells.mesh.ghost_mask])] = 1
 update_progress(0)
-history = run(simulation_with_division(cells,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
+history = run(simulation_death_and_division(cells,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
+
 
 

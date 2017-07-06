@@ -31,3 +31,6 @@ def init_centres(N_cell_across,N_cell_up,ghost_num,noise,rand):
     for i in range(1,N_cell_across):
         ghost_mask[N_cell_up*i-ghost_num:N_cell_up*i+ghost_num] = False 
     return centres, ghost_mask
+    
+def init_mesh(N_cell_across,N_cell_up,ghost_num,noise,rand):
+    return Mesh(*init_centres(N_cell_across,N_cell_up,ghost_num,noise,rand))

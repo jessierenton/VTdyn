@@ -9,18 +9,17 @@ from shapely.geometry import LineString, MultiPolygon, MultiPoint, Point
 current_palette = sns.color_palette()
 
 
-def plot_tri(cells,ax=None,time = None,label=False,palette=current_palette):
+def plot_tri(tissue,ax=None,time = None,label=False,palette=current_palette):
+    ghosts = tissue.by_mesh('ghost')
     fig = plt.figure()
-    fig.set_ylim(-1.5,1.5)
-    fig.set_xlim(-1.0,2.5)
     plot = []    
-    real_centres = cells.mesh.centres[cells.mesh.ghost_mask]
-    ghost_centres = cells.mesh.centres[~cells.mesh.ghost_mask]        
-    plot += plt.triplot(cells.mesh.centres[:,0], cells.mesh.centres[:,1], cells.mesh.tri.copy(),color=palette[3])
+    real_centres = tissue.mesh.centres[~ghosts]
+    ghost_centres = tissue.mesh.centres[ghosts]        
+    plot += plt.triplot(tissue.mesh.centres[:,0], tissue.mesh.centres[:,1], tissue.mesh.tri.copy(),color=palette[3])
     plot += plt.plot(real_centres[:,0], real_centres[:,1], 'o',color = palette[1])
     plot += plt.plot(ghost_centres[:,0],ghost_centres[:,1], 'o')
     if label:
-        for i, coords in enumerate(cells.mesh.centres):
+        for i, coords in enumerate(tissue.mesh.centres):
             plot.append(plt.text(coords[0],coords[1],str(i)))
     if time is not None:
         lims = plt.axis()
@@ -28,95 +27,81 @@ def plot_tri(cells,ax=None,time = None,label=False,palette=current_palette):
     plt.show()
     return plot
 
-def plot_cells(cells,current_palette=current_palette,key=None,ax=None,label=False,time = False,colors=None,centres=True):
+def plot_cells(tissue,current_palette=current_palette,key=None,ax=None,label=False,time = False,colors=None,centres=True):
+    ghosts = tissue.by_mesh('ghost')
     fig = plt.Figure()
     if ax is None:        
         ax = plt.axes()
         plt.axis('scaled')
-        xmin,xmax = min(cells.mesh.centres[:,0]), max(cells.mesh.centres[:,0])
-        ymin,ymax = min(cells.mesh.centres[:,1]), max(cells.mesh.centres[:,1])      
+        xmin,xmax = min(tissue.mesh.centres[:,0]), max(tissue.mesh.centres[:,0])
+        ymin,ymax = min(tissue.mesh.centres[:,1]), max(tissue.mesh.centres[:,1])      
         ax.set_xlim(xmin,xmax)
         ax.set_ylim(ymin,ymax)
         ax.xaxis.set_major_locator(plt.NullLocator())
         ax.yaxis.set_major_locator(plt.NullLocator())
     ax.cla()
-    vor = cells.mesh.voronoi()
+    vor = tissue.mesh.voronoi()
     cells_by_vertex = np.array(vor.regions)[np.array(vor.point_region)]
-    verts = [vor.vertices[cv] for cv in cells_by_vertex[cells.mesh.ghost_mask]]
+    verts = [vor.vertices[cv] for cv in cells_by_vertex[~ghosts]]
     if colors is not None: 
         coll = PolyCollection(verts,linewidths=[2.],facecolors=colors)
     elif key is not None:
-        colors = np.array(current_palette)[cells.by_meshidx(key,False)]
+        colors = np.array(current_palette)[tissue.by_mesh(key)]
         coll = PolyCollection(verts,linewidths=[2.],facecolors=colors)
     else: coll = PolyCollection(verts,linewidths=[2.])
     ax.add_collection(coll)
     if label:
-        for i, coords in enumerate(cells.mesh.centres):
-            if cells.mesh.ghost_mask[i]: plt.text(coords[0],coords[1],str(cells.mesh.cell_ids[i]))
+        ids = tissue.by_mesh('id')
+        for i, coords in enumerate(tissue.mesh.centres):
+            if ~ghosts[i]: plt.text(coords[0],coords[1],str(ids[i]))
     if time:
         lims = plt.axis()
         plt.text(lims[0]+0.1,lims[3]+0.1,'t = %.2f hr'%time)
     if centres: 
-        real_centres = cells.mesh.centres[cells.mesh.ghost_mask]
+        real_centres = tissue.mesh.centres[~ghosts]
         plt.plot(real_centres[:,0], real_centres[:,1], 'o',color='black')        
     plt.show()
 
-def plot_no_ghost(cells,current_palette=sns.color_palette(),key=None,ax=None,label=False,time = False,centres=True):
-    fig = plt.Figure()
-    if ax is None:        
-        ax = plt.axes()
-        plt.axis('scaled')
-        xmin,xmax = min(cells.mesh.centres[:,0]), max(cells.mesh.centres[:,0])
-        ymin,ymax = min(cells.mesh.centres[:,1]), max(cells.mesh.centres[:,1])      
-        ax.set_xlim(xmin,xmax)
-        ax.set_ylim(ymin,ymax)
-        # ax.xaxis.set_major_locator(plt.NullLocator())
-        # ax.yaxis.set_major_locator(plt.NullLocator())
-    plot = []
-    vor = cells.mesh.voronoi()
-    cells_by_vertex = np.array(vor.regions)[np.array(vor.point_region)]
-    verts = np.array([vor.vertices[cv] for cv in cells_by_vertex[cells.mesh.ghost_mask]])
-    bf = lambda vs: np.any(np.sqrt(vs[:,0]**2+vs[:,1]**2)>mmax)
-    mmax = cells.mesh.extreme_point() +0.5
-    flag_border = np.array([-1 in region for region in vor.regions])
-    flag_border = flag_border[np.array(vor.point_region)]
-    flag_border[np.where([bf(vs) for vs in verts])] = True
-    if key is None: coll = PolyCollection(verts[~flag_border],linewidths=[2.])
-    else:
-        colors = np.array(current_palette)[cells.by_meshidx(key,False)]
-        coll = PolyCollection(verts[~flag_border],linewidths=[2.],facecolors=colors)
-    ax.add_collection(coll)
-    if label:
-        for i, coords in enumerate(cells.mesh.centres):
-            if cells.mesh.ghost_mask[i]: plot.append(plt.text(coords[0],coords[1],str(cells.mesh.cell_ids[i])))
-    if time:
-        lims = plt.axis()
-        plot.append(plt.text(lims[0]+0.1,lims[3]+0.1,'t = %.2f hr'%time))
-    if centres: plot+=plt.plot(cells.mesh.centres[:,0], cells.mesh.centres[:,1], 'o',color='black')         
-    plt.show()    
-    return plot
+# def plot_no_ghost(cells,current_palette=sns.color_palette(),key=None,ax=None,label=False,time = False,centres=True):
+#     fig = plt.Figure()
+#     if ax is None:
+#         ax = plt.axes()
+#         plt.axis('scaled')
+#         xmin,xmax = min(cells.mesh.centres[:,0]), max(cells.mesh.centres[:,0])
+#         ymin,ymax = min(cells.mesh.centres[:,1]), max(cells.mesh.centres[:,1])
+#         ax.set_xlim(xmin,xmax)
+#         ax.set_ylim(ymin,ymax)
+#         # ax.xaxis.set_major_locator(plt.NullLocator())
+#         # ax.yaxis.set_major_locator(plt.NullLocator())
+#     plot = []
+#     vor = cells.mesh.voronoi()
+#     cells_by_vertex = np.array(vor.regions)[np.array(vor.point_region)]
+#     verts = np.array([vor.vertices[cv] for cv in cells_by_vertex[cells.mesh.ghost_mask]])
+#     bf = lambda vs: np.any(np.sqrt(vs[:,0]**2+vs[:,1]**2)>mmax)
+#     mmax = cells.mesh.extreme_point() +0.5
+#     flag_border = np.array([-1 in region for region in vor.regions])
+#     flag_border = flag_border[np.array(vor.point_region)]
+#     flag_border[np.where([bf(vs) for vs in verts])] = True
+#     if key is None: coll = PolyCollection(verts[~flag_border],linewidths=[2.])
+#     else:
+#         colors = np.array(current_palette)[cells.by_meshidx(key,False)]
+#         coll = PolyCollection(verts[~flag_border],linewidths=[2.],facecolors=colors)
+#     ax.add_collection(coll)
+#     if label:
+#         for i, coords in enumerate(cells.mesh.centres):
+#             if cells.mesh.ghost_mask[i]: plot.append(plt.text(coords[0],coords[1],str(cells.mesh.cell_ids[i])))
+#     if time:
+#         lims = plt.axis()
+#         plot.append(plt.text(lims[0]+0.1,lims[3]+0.1,'t = %.2f hr'%time))
+#     if centres: plot+=plt.plot(cells.mesh.centres[:,0], cells.mesh.centres[:,1], 'o',color='black')
+#     plt.show()
+#     return plot
 
 
-def plot_type(cells,label=False):
-    centres = cells.mesh.centres
-    A_type = np.where(cells.by_meshidx('type')==0)[0]
-    A_type = A_type[cells.mesh.ghost_mask[A_type]]
-    B_type = np.where(cells.by_meshidx('type')==1)[0]
-    B_type = B_type[cells.mesh.ghost_mask[B_type]]
-    ghost_centres = cells.mesh.centres[~cells.mesh.ghost_mask]        
-    plt.triplot(cells.mesh.centres[:,0], cells.mesh.centres[:,1], cells.mesh.tri.copy())
-    plt.plot(ghost_centres[:,0],ghost_centres[:,1], 'o')
-    plt.plot(centres[A_type][:,0], centres[A_type][:,1], 'o')
-    plt.plot(centres[B_type][:,0], centres[B_type][:,1], 'o')
-    if label:
-        for i, coords in enumerate(cells.mesh.centres):
-            plt.text(coords[0],coords[1],str(i))
-    plt.show()
-
-def animate(cells_array, key = None, timestep=None):
+def animate(history, key=None, timestep=None):
     plt.ion()
-    v_max = np.max((np.max(cells_array[0].mesh.centres), np.max(cells_array[-1].mesh.centres)))
-    if key: key_max = np.max(cells_array[0].properties[key])
+    v_max = np.max((np.max(history[0].mesh.centres), np.max(history[-1].mesh.centres)))
+    if key: key_max = np.max(history[0].properties[key])
     size = 2.0*v_max
     fig = plt.figure()
     ax = plt.axes()
@@ -127,13 +112,14 @@ def animate(cells_array, key = None, timestep=None):
     if key is not None:
         palette = sns.color_palette("husl", key_max+1)
         np.random.shuffle(palette)
-        for n, cells in enumerate(cells_array):
-            if timestep is not None: plot_cells(cells,palette,key,ax,time=n*timestep)
-            else: plot_cells(cells,palette,key,ax)
+        for n, tissue in enumerate(history):
+            if timestep is not None: plot_cells(tissue,palette,key,ax,time=n*timestep)
+            else: plot_cells(tissue,palette,key,ax)
             plt.pause(0.001)
     else:
-        for cells in cells_array:
-            plot_cells(cells,key,ax)
+        for n, tissue in enumerate(history):
+            if timestep is not None: plot_cells(tissue,key=None,ax=ax,time=n*timestep)
+            else: plot_cells(tissue,ax=None)
             plt.pause(0.001)
             
 def animate_no_ghost(cells_array, key = None, timestep=None):

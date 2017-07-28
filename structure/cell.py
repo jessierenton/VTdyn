@@ -1,53 +1,123 @@
-import numpy as numpy
+import numpy as np
 import copy
+from functools import partial
+
+#cell-cycle times hours
+T_G1, T_other = 2,10
+V_G1 = 1 #variance in G1-time
+min_G1 = 0.01 #min G1-time
+
+L0 = 1.0
+EPS = 0.05
+
+
+MU = -50.
+ETA = 1.0
+dt = 0.005 #hours
+r_max = 2.5 #prevents long edges forming in delaunay tri for border tissue
 
 class Cell(object):
     
-    def __init__(self,id,mesh_id,mother,age=0.,cycle_len=None):
+    def __init__(self,rand,id,ghost,mother,age=0.,cycle_len=None):
         self.id = id
-        self.mesh_id = mesh_id
-        if cycle_len is None: self.cycle_len = self.cycle_dist()
+        self.ghost = ghost
+        if cycle_len is None: self.cycle_len = self.cycle_dist(rand)
         else: self.cycle_len = cycle_len
-        self.parent = parent
+        self.mother = mother
         self.age = age
-
-    def clone(self,id,mesh_id,mother):
-        return Cell(id,mesh_id,mother)
-        
-    def cycle_dist(self,type=None,rand=rand):
-        if type is None:
-            cycle_len = rand.normal(T_G1,np.sqrt(V_G1))
-            lifetimes[np.where(lifetimes<min_G1)[0]]==min_G1
-        return lifetimes + T_other
-            
     
+    def copy(self):
+        return Cell(self.id,self.mother,self.age,self.cycle_len)
+
+    def clone(self,cell,new_id,rand):
+        return Cell(rand,new_id,cell.ghost,cell.id)
+        
+    def cycle_dist(self,rand,type=None):
+        if type is None:
+            G1_len = rand.normal(T_G1,np.sqrt(V_G1))
+            G1_len = max(G1_len,min_G1)
+        return G1_len + T_other
+            
+                
 class Tissue(object):    
     
-    def __init__(self,mesh,cell_array,next_id):
+    def __init__(self,mesh,cell_array,next_id,N_real):
         self.mesh = mesh
         self.cell_array = np.array(cell_array)
         self.next_id = next_id
+        self.N_real = N_real
         
-    def cell_division(self,cell_pos):
-        cell = self.cell_array(cell_pos)
-        self.cell_array = np.delete(self.cell_array,cell_pos)
+    def __len__(self):
+        return len(self.mesh)
+    
+    def real_cells(self):
+        return np.array([cell for cell in self.cell_array if not cell.ghost])
+    
+    def by_mesh(self,key):
+        return np.array([cell.__dict__[key] for cell in self.cell_array])
+        
+    def set_attributes(self,key,list_like):
+        for cell,attr in zip(self.cell_array,list_like):
+            cell.__dict__[key] = attr         
+    
+    def ready(self):
+        return [i for i,cell in enumerate(self.cell_array) if cell.age >= cell.cycle_len]
+    
+    def copy(self):
+        return Tissue(self.mesh.copy(),copy.deepcopy(self.cell_array),self.next_id,self.N_real)
+    
+    def move_all(self,dr_array):
+        for i, dr in enumerate(dr_array):
+            self.mesh.move(i,dr)
+    
+    def remove_cell(self,i):
+        self.mesh.remove(i)
+        if not self.cell_array[i].ghost: self.N_real -= 1 
+        self.cell_array = np.delete(self.cell_array,i)
+    
+    def add_clone(self,cell,pos,rand):
+        self.mesh.add(pos)
+        self.cell_array = np.append(self.cell_array,cell.clone(cell,self.next_id,rand))
+        self.next_id += 1
+        if not self.cell_array[-1].ghost: self.N_real += 1
+        
+    def cell_division(self,i,rand):
+        cell = self.cell_array[i]
         angle = rand.rand()*np.pi
         dr = np.array((EPS*np.cos(angle),EPS*np.sin(angle)))
-        mother_centre = centre(cell.mesh_id)
-        new_cen1 = mother_centre + dr
-        new_cen2 = mother_centre - dr
-        mesh_id1 = self.mesh.add(new_cen1)
-        mesh_id2 = self.mesh.add(new_cen2)
-        self.mesh.remove(cell.mesh_id)
-        new_cell1 = cell.clone(self.next_id,mesh_id1,cell.id)
-        new_cell2 = cell.clone(self.next_id+1,mesh_id2,cell.id)
-        self.next_id += 2
-    
-    def cell_apoptosis(self,cell_pos):
-        cell = self.cell_array(cell_pos)
-        self.mesh.remove(cell.mesh_id)
+        new_cen1 = self.mesh.centres[i] + dr
+        new_cen2 = self.mesh.centres[i] - dr
+        self.add_clone(cell,new_cen1,rand)
+        self.add_clone(cell,new_cen2,rand)
+        self.remove_cell(i)
     
     def update(self,dt):
         self.mesh.update()
-        self.cell_array.
+        for cell in self.cell_array:
+            cell.age += dt
         
+    def pref_sep(self,i,j):
+        if self.cell_array[i].mother == self.cell_array[j].mother:
+            age_i = self.cell_array[i].age
+            if age_i < 1.0:
+                return age_i*(L0-2*EPS) +2*EPS
+        return L0
+
+    def force_ij(self,i,j):
+        cell_i,cell_j = self.cell_array[i], self.cell_array[j]
+        if (not cell_i.ghost and cell_j.ghost): return np.array((0.0,0.0))
+        else:              
+            r_len, r_hat = self.mesh.seperation(i,j)
+            if r_len > r_max: return np.array((0.0,0.0))
+            else: 
+                return MU*r_hat*(r_len-self.pref_sep(i,j))
+
+    def force_i(self,i):
+        mapfunc = partial(self.force_ij,i)
+        return sum(map(mapfunc,self.mesh.neighbours(i)))
+    
+    def force_total(self):
+        return sum(map(self.force_i,range(self.N_real)))
+    
+    def dr(self,dt):
+        return (dt/ETA)*np.array([self.force_i(i) for i in range(0,self.mesh.N_mesh)])

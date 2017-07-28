@@ -1,4 +1,6 @@
 import numpy as np
+from cell import Cell, Tissue
+from mesh import Mesh
 
 def init_centres(N_cell_across,N_cell_up,ghost_num,noise,rand):
     """generates positions of cell centres arranged (approximately) hexagonally 
@@ -31,6 +33,25 @@ def init_centres(N_cell_across,N_cell_up,ghost_num,noise,rand):
     for i in range(1,N_cell_across):
         ghost_mask[N_cell_up*i-ghost_num:N_cell_up*i+ghost_num] = False 
     return centres, ghost_mask
+
+
+def init_tissue(N_cell_across,N_cell_up,ghost_num,noise,rand):
+    centres,ghost_mask = init_centres(N_cell_across,N_cell_up,ghost_num,noise,rand)
+    mesh = Mesh(centres)
+    cell_array = basic_cells(mesh,ghost_mask,rand)
+    return Tissue(mesh,cell_array,len(mesh),N_cell_across*N_cell_up)
     
-def init_mesh(N_cell_across,N_cell_up,ghost_num,noise,rand):
-    return Mesh(*init_centres(N_cell_across,N_cell_up,ghost_num,noise,rand))
+
+def basic_cells(mesh,ghost_mask,rand):
+    cells = [Cell(rand,id,~mask,-1,age=1.,cycle_len=None)
+        for id,centre,mask in zip(range(len(mesh)),mesh.centres,ghost_mask)]
+    return cells
+    
+    
+    
+    
+    
+    
+    
+    
+    

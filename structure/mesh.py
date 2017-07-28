@@ -5,7 +5,6 @@ from matplotlib.collections import PolyCollection
 import matplotlib.patches as patches
 import seaborn as sns
 import copy
-from initialisation import *
 
 class Mesh(object):
     """ 
@@ -18,19 +17,11 @@ class Mesh(object):
     
     def __init__(self,centres):
         self.N_mesh = len(centres)
-        self.mesh_ids = np.arange(self.N_mesh)
         self.centres = centres
         self.vnv, self.tri = _delaunay(centres)
-        self.next_id = self.N_mesh
     
     def __len__(self):
         return self.N_mesh
-    
-    def index(self,id):
-        return np.where(self.mesh_ids==id)
-    
-    def centre(self,id):
-        return self.centres[index(id)]
     
     def copy(self):
         return copy.deepcopy(self)
@@ -45,25 +36,19 @@ class Mesh(object):
     def distances(self):
         return np.array([np.sqrt(r[0]**2+r[1]**2) for r in self.centres])
         
-    def move(self, dr):
-        self.centres = self.centres + dr
+    def move(self, i, dr):
+        self.centres[i] += dr
     
     def add(self,pos):
         self.centres = np.append(self.centres,[pos],0)
-        self.mesh_ids = np.append(self.mesh_ids,self.next_ids)
-        self.next_id += 1
-        return self.next_id-1
     
-    def remove(self,mesh_id):
-        index = self.index(id)
-        self.centres = np.delete(self.centres,index,0)
-        self.mesh_ids = np.delete(self.mesh_ids,index)
+    def remove(self,i):
+        self.centres = np.delete(self.centres,i,0)
     
     def neighbours(self,k):
         return self.vnv[1][self.vnv[0][k]:self.vnv[0][k+1]]
     
-    def seperation(self,id_i,id_j):
-        i,j = index(id_i), index(id_j) 
+    def seperation(self,i,j):
         distance = np.sqrt(np.sum(((self.centres[i]-self.centres[j]))**2))      
         return distance, (self.centres[i]-self.centres[j])/distance
         
@@ -79,11 +64,7 @@ def _convex_hull(centres):
 def _voronoi(centres):
     return Voronoi(centres)
                                                   
-def _delaunay(centres):                   
+def _delaunay(centres):               
     tri = Delaunay(centres)
     return tri.vertex_neighbor_vertices, tri.simplices
 
-if __name__ == '__main__':
-    rand = np.random.RandomState(123456)
-    centres = init_centres(6,6,3,0.01,rand)
-    mesh = Mesh(centres)

@@ -19,15 +19,22 @@
 \begin{document} 
 \maketitle
 
-\section{Epithelial tissues}
-Epithelia consist of sheets of cells each of which can undergo processes of proliferation, apoptosis and motility. These are the tissues which form surfaces of the body and organs. Rates of cell replacement in epithelia tend to be much higher than in other tissues and as such the majority of cancers occur in epitheila, known as `carcinomas'. As such the invasion dynamics of mutant cells in epithelia is of particular interest medically.
+Epithelia are the tissues which form the surfaces of our bodies and linings of organs. They consist of sheets of polygonal cells which undergo processes of proliferation, apoptosis and motility. Rates of cell replacement in epithelia tend to be much higher than in other tissues and the majority of cancers originate in epithelial cells. The dynamics of mutant invasion in epithelia is therefore of particular interest medically.
 
-There are a number of individual-based models of epithelia, both on- and off-lattice. Here we focus on a mechanical, cell-centred model: the Voronoi Tesselation (VT) model. 
+In modelling invasion on epithelia it is important to note that they are dynamic structures. While stuctural characteristics such as polygon distribution are conserved over time, cell division, apoptosis and motility lead to local stuctural changes, neighbour exchange and mixing. We suggest that a traditional evolutionary graph theory (EGT) approach is not appropriate as it is based on the use of static graphs which cannot account for this type of behaviour. Further in EGT it is necessary to couple birth and death processes in a way that is unrealistic and introduces a troubling dependence on the exact implimentation of this coupling. 
+
+As an alternative we will use an explicit, individual-based model for epithelia. There are a number of on- and off-lattice models to choose from. We focus on the Voronoi Tesselation model for several reasons: local cell processes do not lead to global reconfigerations as in cellular automota models; it lends itself natural to a graph description of the the structure; it is described entirely by cell-centre positions.
 
 \section{Voronoi Tesselation model}
 
 This model is part of a class of cell-centre models in which a tissue if represented by a set of points corresponding to the centres of individual cells. These cells move freely in space and exert forces on one another. Different models in this class are characterised by the force laws and the mechanism for determining cell neighbours. Here we broadly follow the [Meinke] model with some adjustments from [Leeuwen].
 
+\begin{figure}[htbp]
+	\centering
+		\frame{\includegraphics[width=0.4\textwidth]{springs.png}}
+	\caption{Schematic of Voronoi Tesselation model: depicts cell centres and the spring-like forces exerted between their neighburs as obtained from the Delaunay Triangulation. Also shown are the cell shapes defined by the Voronoi region of each cell-centre. [Leeuwen]}
+	\label{fig:spring}
+\end{figure} 
 \subsection{Force law}
 The assumption in this model is that cells act as if they are connected to their neighbours by a network of springs, such that 
 \begin{equation} \mathbf{F}_{ij}(t) = \mu_{ij}\hat{\mathbf{r}}_{ij}(t)(\vert \mathbf{r}_{ij}(t) \vert -s_{ij}(t))
@@ -55,21 +62,67 @@ In the VT model we define the neighbour connections between cells to be the Dela
 
 As the VT/DT are defined by the cell-centre positions, they must be recalculated after every timestep.
 
-\subsection{Cell cycle}
 
-\subsection{Proliferation and apoptosis}
-Once a cell $i$ reaches the end of its cycle it divides resulting in two new daughter cells. These cells are placed a distance $\epsilon$ from each other, equidistant from their mother across a random axis. 
+\subsection{Cell division and apoptosis}
+When a cell divides its cell-centre is removed and replaced with two new cell-centres. These are placed a small distance $\epsilon$ from each other, equidistant from their mother across a random axis. 
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}{0.24\textwidth}
+	\centering
+	\includegraphics[width=3.7cm]{divide_1.png}
+	\label{fig:divideA}
+\end{subfigure} \hspace{0.02cm}
+\centering
+\begin{subfigure}{0.24\textwidth}
+	\centering
+	\includegraphics[width=3.7cm]{divide_2.png}
+	\label{fig:divideA}
+\end{subfigure} \hspace{0.02cm}
+\centering
+\begin{subfigure}{0.24\textwidth}
+	\centering
+	\includegraphics[width=3.7cm]{divide_3.png}
+	\label{fig:divideA}
+\end{subfigure} \hspace{0.02cm}
+\centering
+\begin{subfigure}{0.24\textwidth}
+	\centering
+	\includegraphics[width=3.7cm]{divide_4.png}
+	\label{fig:divideA}
+\end{subfigure} \\
+\caption{filler text}
+\label{fig:manmade}
+\end{figure}
+When a cell dies its cell-centre is removed.
 
-It is also possible for cells to die without reproducing, this is known as cell apoptosis, and could occur due to x,y,z... homeostasis? In this case the relevent cell-centre is simply removed from the set.
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}{0.24\textwidth}
+	\centering
+	\includegraphics[width=3.7cm]{dead_1.png}
+	\label{fig:divideA}
+\end{subfigure} \hspace{0.02cm}
+\centering
+\begin{subfigure}{0.24\textwidth}
+	\centering
+	\includegraphics[width=3.7cm]{dead_2.png}
+	\label{fig:divideA}
+\end{subfigure} \hspace{0.02cm}
+\centering
+\begin{subfigure}{0.24\textwidth}
+	\centering
+	\includegraphics[width=3.7cm]{dead_3.png}
+	\label{fig:divideA}
+\end{subfigure}
+\caption{filler text}
+\label{fig:manmade}
+\end{figure}
 
-\section{Simulation}
-\begin{enumerate}
-	\item DT is performed in order to obtain the neighbour set of each cell
-	\item forces are calculated and cells are moved accordingly
-	\item cells divide if they have reached the end of their cell cycle
-	\item cell apoptosis occurs
-	\item cells age
-\end{enumerate}
+\subsection{Simulation}
+The simulation algorithm proceeds as follows: (1) DT is performed to determine cell neighbours; (2) forces are calculated and the cells moved accordingly; (3) any cells at the end of their cycle divide; (4) cell death if applicable; (5) cells age.
+
+\section{Implementation}
+Currently there are a number of problems with implement
  
 \bibliographystyle{ieeetr} 
 \bibliography{sample}

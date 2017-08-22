@@ -10,14 +10,10 @@ current_palette = sns.color_palette()
 
 
 def plot_tri(tissue,ax=None,time = None,label=False,palette=current_palette):
-    ghosts = tissue.by_mesh('ghost')
-    fig = plt.figure()
-    plot = []    
-    real_centres = tissue.mesh.centres[~ghosts]
-    ghost_centres = tissue.mesh.centres[ghosts]        
-    plot += plt.triplot(tissue.mesh.centres[:,0], tissue.mesh.centres[:,1], tissue.mesh.tri.copy(),color=palette[3])
-    plot += plt.plot(real_centres[:,0], real_centres[:,1], 'o',color = palette[1])
-    plot += plt.plot(ghost_centres[:,0],ghost_centres[:,1], 'o')
+    fig = plt.figure() 
+    centres = tissue.mesh.centres     
+    plt.triplot(tissue.mesh.centres[:,0], tissue.mesh.centres[:,1], tissue.mesh.tri.copy(),color=palette[3])
+    plt.plot(centres[:,0], centres[:,1], 'o',color = palette[1])
     if label:
         for i, coords in enumerate(tissue.mesh.centres):
             plot.append(plt.text(coords[0],coords[1],str(i)))
@@ -25,7 +21,42 @@ def plot_tri(tissue,ax=None,time = None,label=False,palette=current_palette):
         lims = plt.axis()
         plot.append(plt.text(lims[0]+0.1,lims[3]+0.1,'t = %.2f hr'%time))
     plt.show()
-    return plot
+
+def finite_plot(tissue,show_centres=True):
+    from matplotlib.collections import PatchCollection
+    from shapely.ops import polygonize
+    from shapely.geometry import LineString, MultiPolygon, MultiPoint, Point
+    from scipy.spatial import Voronoi
+    from descartes.patch import PolygonPatch
+    
+    centres = tissue.mesh.centres 
+    vor = tissue.mesh.voronoi()
+    lines = [
+        LineString(vor.vertices[line])
+        for line in vor.ridge_vertices if -1 not in line
+    ]
+    convex_hull = MultiPoint([Point(i) for i in centres]).convex_hull
+    mp = MultiPolygon(
+        [poly.intersection(convex_hull) for poly in polygonize(lines)])
+ 
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    minx, miny, maxx, maxy = mp.bounds
+    w, h = maxx - minx, maxy - miny
+    ax.set_xlim(minx - 0.2 * w, maxx + 0.2 * w)
+    ax.set_ylim(miny - 0.2 * h, maxy + 0.2 * h)
+    ax.set_aspect(1)
+
+    patches = []
+    for idx, p in enumerate(mp):
+        patches.append(PolygonPatch(p))
+    ax.add_collection(PatchCollection(patches))
+    
+    if show_centres: 
+        plt.plot(centres[:,0], centres[:,1], 'o',color='black')
+    
+    plt.show()
+
 
 def plot_cells(tissue,current_palette=current_palette,key=None,ax=None,label=False,time = False,colors=None,centres=True):
     ghosts = tissue.by_mesh('ghost')

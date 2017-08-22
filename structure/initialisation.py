@@ -2,12 +2,11 @@ import numpy as np
 from cell import Cell, Tissue
 from mesh import Mesh
 
-def init_centres(N_cell_across,N_cell_up,ghost_num,noise,rand):
+def hex_centres(N_cell_across,N_cell_up,noise,rand):
     """generates positions of cell centres arranged (approximately) hexagonally 
     surrounded a border by ghost nodes
     """
-    N_cell_across += 2*ghost_num
-    N_cell_up += 2*ghost_num
+    
     assert(N_cell_up % 2 == 0)  # expect even number of rows
     dx, dy = 1.0/N_cell_across, 1.0/(N_cell_up/2)
     x = np.arange(-0.5+dx/4, 0.5, dx)
@@ -26,28 +25,29 @@ def init_centres(N_cell_across,N_cell_up,ghost_num,noise,rand):
 
     centres = centres.reshape(-1, 2)*np.array([width, height])
     centres += rand.rand(N_cell_up*N_cell_across, 2)*noise
-    
-    ghost_mask = np.full(N_cell_across*N_cell_up,True, dtype=bool)
-    ghost_mask[:N_cell_up*ghost_num] = False
-    ghost_mask[(N_cell_across-ghost_num)*N_cell_up:] = False
-    for i in range(1,N_cell_across):
-        ghost_mask[N_cell_up*i-ghost_num:N_cell_up*i+ghost_num] = False 
-    return centres, ghost_mask
+  
+    return centres
 
+# def circular_random_mesh(N_cell, rand):
+#     R = np.sqrt(N_cell/np.pi)
+#     r = R*np.sqrt(rand.rand(N_cell))
+#     theta = 2*np.pi*rand.rand(N_cell)
+#     centres = np.array((r*np.cos(theta), r*np.sin(theta))).T
+#     reflected_centres = (R*R/r/r)[:, None]*centres
 
-def init_tissue(N_cell_across,N_cell_up,ghost_num,noise,rand):
-    centres,ghost_mask = init_centres(N_cell_across,N_cell_up,ghost_num,noise,rand)
+def init_tissue(N_cell_across,N_cell_up,noise,rand):
+    centres= hex_centres(N_cell_across,N_cell_up,noise,rand)
     mesh = Mesh(centres)
-    cell_array = basic_cells(mesh,ghost_mask,rand)
-    return Tissue(mesh,cell_array,len(mesh),N_cell_across*N_cell_up)
+    cell_array = basic_cells(mesh,rand)
+    return Tissue(mesh,cell_array,len(mesh))
     
 
-def basic_cells(mesh,ghost_mask,rand):
-    cells = [Cell(rand,id,~mask,-1,age=1.,cycle_len=None)
-        for id,centre,mask in zip(range(len(mesh)),mesh.centres,ghost_mask)]
+def basic_cells(mesh,rand):
+    cells = [Cell(rand,id,-1,age=1.,cycle_len=None)
+        for id,centre in zip(range(len(mesh)),mesh.centres)]
     return cells
     
-    
+
     
     
     

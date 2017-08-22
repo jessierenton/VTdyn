@@ -71,7 +71,7 @@ def run(simulation,N_step,skip):
 
 timend = 2.
 timestep = 0.01
-tissue = init_tissue(6,6,0,0.01,rand)
+tissue = init_tissue(6,6,0.01,rand)
 tissue = run(simulation_no_division(tissue,dt,rand=rand),1/dt,timestep/dt)[-1]
 tissue.set_attributes('age',rand.rand(tissue.mesh.N_mesh)*11+1)
 

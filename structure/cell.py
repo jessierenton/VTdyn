@@ -18,9 +18,8 @@ r_max = 2.5 #prevents long edges forming in delaunay tri for border tissue
 
 class Cell(object):
     
-    def __init__(self,rand,id,ghost,mother,age=0.,cycle_len=None):
+    def __init__(self,rand,id,mother,age=0.,cycle_len=None):
         self.id = id
-        self.ghost = ghost
         if cycle_len is None: self.cycle_len = self.cycle_dist(rand)
         else: self.cycle_len = cycle_len
         self.mother = mother
@@ -30,7 +29,7 @@ class Cell(object):
         return Cell(self.id,self.mother,self.age,self.cycle_len)
 
     def clone(self,cell,new_id,rand):
-        return Cell(rand,new_id,cell.ghost,cell.id)
+        return Cell(rand,new_id,cell.id)
         
     def cycle_dist(self,rand,type=None):
         if type is None:
@@ -41,17 +40,13 @@ class Cell(object):
                 
 class Tissue(object):    
     
-    def __init__(self,mesh,cell_array,next_id,N_real):
+    def __init__(self,mesh,cell_array,next_id):
         self.mesh = mesh
         self.cell_array = np.array(cell_array)
         self.next_id = next_id
-        self.N_real = N_real
         
     def __len__(self):
         return len(self.mesh)
-    
-    def real_cells(self):
-        return np.array([cell for cell in self.cell_array if not cell.ghost])
     
     def by_mesh(self,key):
         return np.array([cell.__dict__[key] for cell in self.cell_array])
@@ -64,7 +59,7 @@ class Tissue(object):
         return [i for i,cell in enumerate(self.cell_array) if cell.age >= cell.cycle_len]
     
     def copy(self):
-        return Tissue(self.mesh.copy(),copy.deepcopy(self.cell_array),self.next_id,self.N_real)
+        return Tissue(self.mesh.copy(),copy.deepcopy(self.cell_array),self.next_id)
     
     def move_all(self,dr_array):
         for i, dr in enumerate(dr_array):
@@ -72,14 +67,12 @@ class Tissue(object):
     
     def remove_cell(self,i):
         self.mesh.remove(i)
-        if not self.cell_array[i].ghost: self.N_real -= 1 
         self.cell_array = np.delete(self.cell_array,i)
     
     def add_clone(self,cell,pos,rand):
         self.mesh.add(pos)
         self.cell_array = np.append(self.cell_array,cell.clone(cell,self.next_id,rand))
         self.next_id += 1
-        if not self.cell_array[-1].ghost: self.N_real += 1
         
     def cell_division(self,i,rand):
         cell = self.cell_array[i]
@@ -104,20 +97,17 @@ class Tissue(object):
         return L0
 
     def force_ij(self,i,j):
-        cell_i,cell_j = self.cell_array[i], self.cell_array[j]
-        if (not cell_i.ghost and cell_j.ghost): return np.array((0.0,0.0))
-        else:              
-            r_len, r_hat = self.mesh.seperation(i,j)
-            if r_len > r_max: return np.array((0.0,0.0))
-            else: 
-                return MU*r_hat*(r_len-self.pref_sep(i,j))
+        cell_i,cell_j = self.cell_array[i], self.cell_array[j]              
+        r_len, r_hat = self.mesh.seperation(i,j)
+        if r_len > r_max: return np.array((0.0,0.0))
+        else: return MU*r_hat*(r_len-self.pref_sep(i,j))
 
     def force_i(self,i):
         mapfunc = partial(self.force_ij,i)
         return sum(map(mapfunc,self.mesh.neighbours(i)))
     
     def force_total(self):
-        return sum(map(self.force_i,range(self.N_real)))
+        return sum(map(self.force_i,range(len(self))))
     
     def dr(self,dt):
         return (dt/ETA)*np.array([self.force_i(i) for i in range(0,self.mesh.N_mesh)])

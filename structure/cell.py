@@ -96,8 +96,7 @@ class Tissue(object):
                 return age_i*(L0-2*EPS) +2*EPS
         return L0
 
-    def force_ij(self,i,j):
-        cell_i,cell_j = self.cell_array[i], self.cell_array[j]              
+    def force_ij(self,i,j):      
         r_len, r_hat = self.mesh.seperation(i,j)
         if r_len > r_max: return np.array((0.0,0.0))
         else: return MU*r_hat*(r_len-self.pref_sep(i,j))

@@ -8,7 +8,7 @@ from initialisation import *
 from plot import *
 from data import *
 
-dt = 0.01 #hours
+dt = 0.005 #hours
 
 
 rand = np.random.RandomState(123456)
@@ -33,10 +33,13 @@ def update_progress(progress):
     sys.stdout.flush()
 
 
-def simulation_no_division(tissue,dt,rand=rand):
+def simulation_no_division(tissue,dt,N_steps,rand=rand):
+    step = 0
     while True:
+        step += 1
         tissue.move_all(tissue.dr(dt))
         tissue.mesh.update() 
+        update_progress(step/N_steps)  
         yield tissue
 
 def simulation_with_division(tissue,dt,N_steps,rand=rand):
@@ -61,7 +64,7 @@ def simulation_death_and_division(tissue,dt,N_steps,rand=rand):
             tissue.cell_division(mother,rand)
         deathready = tissue.mesh.cell_ids[np.where(tissue.properties['deathtime'][tissue.mesh.cell_ids]<0.0)[0]]
         for dead in deathready:
-            tissue.removll(dead)
+            tissue.remove(dead)
         tissue.update(dt)
         update_progress(step/N_steps)  
         yield tissue
@@ -69,10 +72,13 @@ def simulation_death_and_division(tissue,dt,N_steps,rand=rand):
 def run(simulation,N_step,skip):
     return [tissue.copy() for tissue in itertools.islice(simulation,0,N_step,skip)]
 
-timend = 2.
-timestep = 0.01
-tissue = init_tissue(6,6,0.01,rand)
-tissue = run(simulation_no_division(tissue,dt,rand=rand),1/dt,timestep/dt)[-1]
+timend = 30
+timestep = 0.1
+tissue = init_tissue(6,6,0.2,rand)
+
+# history = run(simulation_no_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
+
+tissue = run(simulation_no_division(tissue,dt,1/dt,rand=rand),1/dt,timestep/dt)[-1]
 tissue.set_attributes('age',rand.rand(tissue.mesh.N_mesh)*11+1)
 
 update_progress(0)

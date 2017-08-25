@@ -1,10 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.collections import PolyCollection
+from matplotlib.collections import PolyCollection, PatchCollection
 import matplotlib.patches as patches
 import seaborn as sns
 from shapely.ops import polygonize
-from shapely.geometry import LineString, MultiPolygon, MultiPoint, Point
+from shapely.geometry import LineString, MultiPolygon, Polygon, MultiPoint, Point
+from scipy.spatial import Voronoi
+from descartes.patch import PolygonPatch
 
 current_palette = sns.color_palette()
 
@@ -16,44 +18,75 @@ def plot_tri(tissue,ax=None,time = None,label=False,palette=current_palette):
     plt.plot(centres[:,0], centres[:,1], 'o',color = palette[1])
     if label:
         for i, coords in enumerate(tissue.mesh.centres):
-            plot.append(plt.text(coords[0],coords[1],str(i)))
+            plt.text(coords[0],coords[1],str(i))
     if time is not None:
         lims = plt.axis()
-        plot.append(plt.text(lims[0]+0.1,lims[3]+0.1,'t = %.2f hr'%time))
+        plt.text(lims[0]+0.1,lims[3]+0.1,'t = %.2f hr'%time)
     plt.show()
 
-def finite_plot(tissue,show_centres=True):
-    from matplotlib.collections import PatchCollection
-    from shapely.ops import polygonize
-    from shapely.geometry import LineString, MultiPolygon, MultiPoint, Point
-    from scipy.spatial import Voronoi
-    from descartes.patch import PolygonPatch
+def get_vertices_for_inf_line(vor,i,pointidx,center,ptp_bound):
+    t = vor.points[pointidx[1]] - vor.points[pointidx[0]]  # tangent
+    t /= np.linalg.norm(t)
+    n = np.array([-t[1], t[0]])  # normal
+
+    midpoint = vor.points[pointidx].mean(axis=0)
+    direction = np.sign(np.dot(midpoint - center, n)) * n
+    far_point = vor.vertices[i] + direction * ptp_bound.max()
+
+    return far_point
+
+def get_region_for_infinite(region,vor,center,ptp_bound):    
+    infidx= region.index(-1)
+    finite_end1 = region[infidx-1]
+    finite_end2 = region[(infidx+1)%len(region)]
     
+    try: pointidx1 = vor.ridge_points[vor.ridge_vertices.index([-1,finite_end1])]
+    except ValueError: pointidx1 = vor.ridge_points[vor.ridge_vertices.index([finite_end1,-1])]
+    far_point1 = get_vertices_for_inf_line(vor,finite_end1,pointidx1,center,ptp_bound)
+        
+    try: pointidx2 = vor.ridge_points[vor.ridge_vertices.index([-1,finite_end2])]
+    except ValueError: pointidx2 = vor.ridge_points[vor.ridge_vertices.index([finite_end2,-1])]
+    far_point2 = get_vertices_for_inf_line(vor,finite_end2,pointidx2,center,ptp_bound)
+    region_vertices = []
+    for pt in region:
+        if pt != -1: region_vertices.append(vor.vertices[pt])
+        else: region_vertices.append(far_point1); region_vertices.append(far_point2)
+    return np.array(region_vertices)
+    
+def finite_plot(tissue,ax=None,show_centres=False,cell_ids=False,mesh_ids=False):
     centres = tissue.mesh.centres 
     vor = tissue.mesh.voronoi()
-    lines = [
-        LineString(vor.vertices[line])
-        for line in vor.ridge_vertices if -1 not in line
-    ]
+    center = vor.points.mean(axis=0)
+    ptp_bound = vor.points.ptp(axis=0)
+    
+    regions = [Polygon(vor.vertices[region]) if -1 not in region else
+                Polygon(get_region_for_infinite(region,vor,center,ptp_bound))
+                for region in vor.regions if len(region)>=2
+                ]
     convex_hull = MultiPoint([Point(i) for i in centres]).convex_hull
     mp = MultiPolygon(
-        [poly.intersection(convex_hull) for poly in polygonize(lines)])
- 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    minx, miny, maxx, maxy = mp.bounds
-    w, h = maxx - minx, maxy - miny
-    ax.set_xlim(minx - 0.2 * w, maxx + 0.2 * w)
-    ax.set_ylim(miny - 0.2 * h, maxy + 0.2 * h)
-    ax.set_aspect(1)
+        [poly.intersection(convex_hull) for poly in regions])
+   
+    if ax is None: 
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        minx, miny, maxx, maxy = mp.bounds
+        w, h = maxx - minx, maxy - miny
+        ax.set_xlim(minx - 0.2 * w, maxx + 0.2 * w)
+        ax.set_ylim(miny - 0.2 * h, maxy + 0.2 * h)
+        ax.set_aspect(1)
 
-    patches = []
-    for idx, p in enumerate(mp):
-        patches.append(PolygonPatch(p))
-    ax.add_collection(PatchCollection(patches))
+    ax.add_collection(PatchCollection([PolygonPatch(p) for p in mp]))
     
     if show_centres: 
         plt.plot(centres[:,0], centres[:,1], 'o',color='black')
+    if cell_ids:
+        ids = tissue.by_mesh('id')
+        for i, coords in enumerate(tissue.mesh.centres):
+            plt.text(coords[0],coords[1],str(ids[i]))
+    if mesh_ids:
+        for i, coords in enumerate(tissue.mesh.centres):
+            plt.text(coords[0],coords[1],str(i))
     
     plt.show()
 
@@ -153,24 +186,24 @@ def animate(history, key=None, timestep=None):
             else: plot_cells(tissue,ax=None)
             plt.pause(0.001)
             
-def animate_no_ghost(cells_array, key = None, timestep=None):
+def animate_finite(history, key = None, timestep=None):
+    xmin,ymin = np.amin([np.amin(tissue.mesh.centres,axis=0) for tissue in history],axis=0)*1.5
+    xmax,ymax = np.amax([np.amax(tissue.mesh.centres,axis=0) for tissue in history],axis=0)*1.5
+      
     plt.ion()
-    v_max = np.max((np.max(cells_array[0].mesh.centres), np.max(cells_array[-1].mesh.centres)))
-    if key: key_max = np.max(cells_array[0].properties[key])
-    size = 2.0*v_max
+    if key: key_max = np.max(history[0].properties[key])
     fig = plt.figure()
     ax = plt.axes()
-    plt.axis('scaled')
-    lim = [-0.55*size, 0.55*size]    
-    ax.set_xlim(lim)
-    ax.set_ylim(lim)
+    plt.axis('scaled')  
+    ax.set_xlim(xmin,xmax)
+    ax.set_ylim(ymin,ymax)
     fig.set_size_inches(6, 6)
     ax.set_autoscale_on(False)
     plot = []
     if key is not None:
         palette = sns.color_palette("husl", key_max+1)
         np.random.shuffle(palette)
-        for n, cells in enumerate(cells_array):
+        for n, cells in enumerate(history):
             if len(plot)>0: 
                 for p in plot: p.remove()
             for coll in (ax.collections): ax.collections.remove(coll)
@@ -178,13 +211,14 @@ def animate_no_ghost(cells_array, key = None, timestep=None):
             else: plot = plot_no_ghost(cells,palette,key,ax)
             plt.pause(0.001)
     else:
-        for cells in cells_array:
-            plot_no_ghost(cells,key,ax)
-            plt.pause(0.001)
+        for tissue in history:
+            finite_plot(tissue,ax=ax)
+            plt.pause(0.01)
+            ax.cla()
  
-def animate_mesh(cells_array,timestep):
+def animate_mesh(history,timestep):
     plt.ion()
-    v_max = np.max((np.max(cells_array[0].mesh.centres), np.max(cells_array[-1].mesh.centres)))
+    v_max = np.max((np.max(history[0].mesh.centres), np.max(history[-1].mesh.centres)))
     size = 2.0*v_max
     fig = plt.figure()
     ax = plt.axes()
@@ -195,15 +229,15 @@ def animate_mesh(cells_array,timestep):
     fig.set_size_inches(6, 6)
     ax.set_autoscale_on(False)
     plot = []
-    for n,cells in enumerate(cells_array):
+    for n,cells in enumerate(history):
         if len(plot)>0: 
             for p in plot: p.remove()
         plot = plot_tri(cells,ax,n*timestep)
         plt.pause(0.001)
     
-def animate_video_mpg(cells_array,name,index,facecolours='Default'):
-    v_max = np.max((np.max(cells_array[0].mesh.centres), np.max(cells_array[-1].mesh.centres)))
-    if key: key_max = np.max(cells_array[0].properties[key])
+def animate_video_mpg(history,name,index,facecolours='Default'):
+    v_max = np.max((np.max(history[0].mesh.centres), np.max(history[-1].mesh.centres)))
+    if key: key_max = np.max(history[0].properties[key])
     size = 2.0*v_max
     outputdir="images"
     if not os.path.exists(outputdir): # if the folder doesn't exist create it
@@ -216,7 +250,7 @@ def animate_video_mpg(cells_array,name,index,facecolours='Default'):
     ax.set_ylim(lim)    
     frames=[]
     i = 0
-    for cells in cells_array:
+    for cells in history:
         plot_cells(cells,key,ax)
         i=i+1
         frame="images/image%04i.png" % i

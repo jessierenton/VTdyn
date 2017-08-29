@@ -18,18 +18,20 @@ r_max = 2.5 #prevents long edges forming in delaunay tri for border tissue
 
 class Cell(object):
     
-    def __init__(self,rand,id,mother,age=0.,cycle_len=None):
+    def __init__(self,rand,id,mother=None,age=0.,cycle_len=None,ptype=0):
         self.id = id
         if cycle_len is None: self.cycle_len = self.cycle_dist(rand)
         else: self.cycle_len = cycle_len
+        if mother is None: mother = id
+        self.ptype = ptype
         self.mother = mother
         self.age = age
     
     def copy(self):
-        return Cell(self.id,self.mother,self.age,self.cycle_len)
+        return Cell(self.id,self.mother,self.age,self.cycle_len,self.ptype)
 
     def clone(self,cell,new_id,rand):
-        return Cell(rand,new_id,cell.id)
+        return Cell(rand,new_id,cell.id,ptype=cell.ptype)
         
     def cycle_dist(self,rand,type=None):
         if type is None:

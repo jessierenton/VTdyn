@@ -12,7 +12,6 @@ class Mesh(object):
     """ 
     Attributes: N_cells = number of cells 
                 centres = array of (x,y) values for both cell and ghost node positions
-                ghost_mask = boolean array such that ghost_mask = True if centre represents a cell, False if a ghost_node
                 vnv = contains neighbour information for cells (extract using neighbours method)
                 tri = (N_mesh,3) array containing indices of centres forming triangles (used for plot_tri method)
     """

@@ -72,9 +72,9 @@ def simulation_death_and_division(tissue,dt,N_steps,rand=rand):
 def run(simulation,N_step,skip):
     return [tissue.copy() for tissue in itertools.islice(simulation,0,N_step,skip)]
 
-timend = 30
+timend = 10
 timestep = 0.1
-tissue = init_tissue(6,6,0.2,rand)
+tissue = init_tissue(6,6,0.2,rand,mutant=1)
 
 # history = run(simulation_no_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
 

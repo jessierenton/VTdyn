@@ -53,7 +53,7 @@ def get_region_for_infinite(region,vor,center,ptp_bound):
         else: region_vertices.append(far_point1); region_vertices.append(far_point2)
     return np.array(region_vertices)
     
-def finite_plot(tissue,ax=None,show_centres=False,cell_ids=False,mesh_ids=False):
+def finite_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False):
     centres = tissue.mesh.centres 
     vor = tissue.mesh.voronoi()
     center = vor.points.mean(axis=0)
@@ -61,7 +61,7 @@ def finite_plot(tissue,ax=None,show_centres=False,cell_ids=False,mesh_ids=False)
     
     regions = [Polygon(vor.vertices[region]) if -1 not in region else
                 Polygon(get_region_for_infinite(region,vor,center,ptp_bound))
-                for region in vor.regions if len(region)>=2
+                for region in np.array(vor.regions)[np.array(vor.point_region)] if len(region)>=2
                 ]
     convex_hull = MultiPoint([Point(i) for i in centres]).convex_hull
     mp = MultiPolygon(
@@ -75,8 +75,13 @@ def finite_plot(tissue,ax=None,show_centres=False,cell_ids=False,mesh_ids=False)
         ax.set_xlim(minx - 0.2 * w, maxx + 0.2 * w)
         ax.set_ylim(miny - 0.2 * h, maxy + 0.2 * h)
         ax.set_aspect(1)
-
-    ax.add_collection(PatchCollection([PolygonPatch(p) for p in mp]))
+    
+    if key is None: ax.add_collection(PatchCollection([PolygonPatch(p) for p in mp]))
+    else:
+        colours = palette[tissue.by_mesh(key)]
+        coll = PatchCollection([PolygonPatch(p,facecolor = c) for p,c in zip(mp,colours)],match_original=True)
+        # coll.set_facecolors(palette[tissue.by_mesh(key)])
+        ax.add_collection(coll)
     
     if show_centres: 
         plt.plot(centres[:,0], centres[:,1], 'o',color='black')
@@ -87,6 +92,10 @@ def finite_plot(tissue,ax=None,show_centres=False,cell_ids=False,mesh_ids=False)
     if mesh_ids:
         for i, coords in enumerate(tissue.mesh.centres):
             plt.text(coords[0],coords[1],str(i))
+    if key_label is not None:
+        ids = tissue.by_mesh(key_label)
+        for i, coords in enumerate(tissue.mesh.centres):
+            plt.text(coords[0],coords[1],str(ids[i]))
     
     plt.show()
 
@@ -161,37 +170,12 @@ def plot_cells(tissue,current_palette=current_palette,key=None,ax=None,label=Fal
 #     plt.show()
 #     return plot
 
-
-def animate(history, key=None, timestep=None):
-    plt.ion()
-    v_max = np.max((np.max(history[0].mesh.centres), np.max(history[-1].mesh.centres)))
-    if key: key_max = np.max(history[0].properties[key])
-    size = 2.0*v_max
-    fig = plt.figure()
-    ax = plt.axes()
-    plt.axis('scaled')
-    lim = [-0.55*size, 0.55*size]    
-    ax.set_xlim(lim)
-    ax.set_ylim(lim)
-    if key is not None:
-        palette = sns.color_palette("husl", key_max+1)
-        np.random.shuffle(palette)
-        for n, tissue in enumerate(history):
-            if timestep is not None: plot_cells(tissue,palette,key,ax,time=n*timestep)
-            else: plot_cells(tissue,palette,key,ax)
-            plt.pause(0.001)
-    else:
-        for n, tissue in enumerate(history):
-            if timestep is not None: plot_cells(tissue,key=None,ax=ax,time=n*timestep)
-            else: plot_cells(tissue,ax=None)
-            plt.pause(0.001)
             
 def animate_finite(history, key = None, timestep=None):
     xmin,ymin = np.amin([np.amin(tissue.mesh.centres,axis=0) for tissue in history],axis=0)*1.5
     xmax,ymax = np.amax([np.amax(tissue.mesh.centres,axis=0) for tissue in history],axis=0)*1.5
       
     plt.ion()
-    if key: key_max = np.max(history[0].properties[key])
     fig = plt.figure()
     ax = plt.axes()
     plt.axis('scaled')  
@@ -201,20 +185,19 @@ def animate_finite(history, key = None, timestep=None):
     ax.set_autoscale_on(False)
     plot = []
     if key is not None:
-        palette = sns.color_palette("husl", key_max+1)
+        key_max = max((max(tissue.by_mesh(key)) for tissue in history))
+        palette = np.array(sns.color_palette("husl", key_max+1))
         np.random.shuffle(palette)
-        for n, cells in enumerate(history):
-            if len(plot)>0: 
-                for p in plot: p.remove()
-            for coll in (ax.collections): ax.collections.remove(coll)
-            if timestep is not None: plot = plot_no_ghost(cells,palette,key,ax,time=n*timestep)
-            else: plot = plot_no_ghost(cells,palette,key,ax)
+        for tissue in history:
+            ax.cla()
+            finite_plot(tissue,palette,key,ax=ax)
             plt.pause(0.001)
     else:
         for tissue in history:
-            finite_plot(tissue,ax=ax)
-            plt.pause(0.01)
             ax.cla()
+            finite_plot(tissue,ax=ax)
+            plt.pause(0.001)
+            
  
 def animate_mesh(history,timestep):
     plt.ion()

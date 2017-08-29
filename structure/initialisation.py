@@ -40,10 +40,17 @@ def init_tissue(N_cell_across,N_cell_up,noise,rand):
     mesh = Mesh(centres)
     cell_array = basic_cells(mesh,rand)
     return Tissue(mesh,cell_array,len(mesh))
+
+def init_tissue(N_cell_across,N_cell_up,noise,rand,mutant=None):
+    centres= hex_centres(N_cell_across,N_cell_up,noise,rand)
+    mesh = Mesh(centres)
+    cell_array = basic_cells(mesh,rand,ptype=0)
+    if mutant: cell_array[rand.randint(N_cell_across*N_cell_up,size=mutant)].ptype = 1
+    return Tissue(mesh,cell_array,len(mesh))
     
 
-def basic_cells(mesh,rand):
-    cells = [Cell(rand,id,-1,age=1.,cycle_len=None)
+def basic_cells(mesh,rand,ptype=None):
+    cells = [Cell(rand,id,age=1.,cycle_len=None,ptype=ptype)
         for id,centre in zip(range(len(mesh)),mesh.centres)]
     return cells
     

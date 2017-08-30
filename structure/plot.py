@@ -52,6 +52,50 @@ def get_region_for_infinite(region,vor,center,ptp_bound):
         if pt != -1: region_vertices.append(vor.vertices[pt])
         else: region_vertices.append(far_point1); region_vertices.append(far_point2)
     return np.array(region_vertices)
+
+def torus_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False):
+    width, height = tissue.mesh.width, tissue.mesh.height 
+    centres = tissue.mesh.centres 
+    centres_3x3 = np.vstack([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]])
+    N = tissue.mesh.N_mesh
+    mask = np.full(9*N,False,dtype=bool)
+    mask[4*N:5*N]=True
+    vor = Voronoi(centres_3x3)
+    
+    mp = MultiPolygon([Polygon(vor.vertices[region])
+                for region in (np.array(vor.regions)[np.array(vor.point_region)])[mask]])
+    
+    if ax is None: 
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        minx, miny, maxx, maxy = 0,0,width,height
+        w, h = maxx - minx, maxy - miny
+        ax.set_xlim(minx - 0.5 * w, maxx + 0.5 * w)
+        ax.set_ylim(miny - 0.5 * h, maxy + 0.5 * h)
+        ax.set_aspect(1)
+    
+    if key is None: ax.add_collection(PatchCollection([PolygonPatch(p) for p in mp]))
+    else:
+        colours = palette[tissue.by_mesh(key)]
+        coll = PatchCollection([PolygonPatch(p,facecolor = c) for p,c in zip(mp,colours)],match_original=True)
+        ax.add_collection(coll)
+    
+    if show_centres: 
+        plt.plot(centres[:,0], centres[:,1], 'o',color='black')
+    if cell_ids:
+        ids = tissue.by_mesh('id')
+        for i, coords in enumerate(tissue.mesh.centres):
+            plt.text(coords[0],coords[1],str(ids[i]))
+    if mesh_ids:
+        for i, coords in enumerate(tissue.mesh.centres):
+            plt.text(coords[0],coords[1],str(i))
+    if key_label is not None:
+        ids = tissue.by_mesh(key_label)
+        for i, coords in enumerate(tissue.mesh.centres):
+            plt.text(coords[0],coords[1],str(ids[i]))
+    
+    plt.show()
+    
     
 def finite_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False):
     centres = tissue.mesh.centres 
@@ -135,42 +179,7 @@ def plot_cells(tissue,current_palette=current_palette,key=None,ax=None,label=Fal
         plt.plot(real_centres[:,0], real_centres[:,1], 'o',color='black')        
     plt.show()
 
-# def plot_no_ghost(cells,current_palette=sns.color_palette(),key=None,ax=None,label=False,time = False,centres=True):
-#     fig = plt.Figure()
-#     if ax is None:
-#         ax = plt.axes()
-#         plt.axis('scaled')
-#         xmin,xmax = min(cells.mesh.centres[:,0]), max(cells.mesh.centres[:,0])
-#         ymin,ymax = min(cells.mesh.centres[:,1]), max(cells.mesh.centres[:,1])
-#         ax.set_xlim(xmin,xmax)
-#         ax.set_ylim(ymin,ymax)
-#         # ax.xaxis.set_major_locator(plt.NullLocator())
-#         # ax.yaxis.set_major_locator(plt.NullLocator())
-#     plot = []
-#     vor = cells.mesh.voronoi()
-#     cells_by_vertex = np.array(vor.regions)[np.array(vor.point_region)]
-#     verts = np.array([vor.vertices[cv] for cv in cells_by_vertex[cells.mesh.ghost_mask]])
-#     bf = lambda vs: np.any(np.sqrt(vs[:,0]**2+vs[:,1]**2)>mmax)
-#     mmax = cells.mesh.extreme_point() +0.5
-#     flag_border = np.array([-1 in region for region in vor.regions])
-#     flag_border = flag_border[np.array(vor.point_region)]
-#     flag_border[np.where([bf(vs) for vs in verts])] = True
-#     if key is None: coll = PolyCollection(verts[~flag_border],linewidths=[2.])
-#     else:
-#         colors = np.array(current_palette)[cells.by_meshidx(key,False)]
-#         coll = PolyCollection(verts[~flag_border],linewidths=[2.],facecolors=colors)
-#     ax.add_collection(coll)
-#     if label:
-#         for i, coords in enumerate(cells.mesh.centres):
-#             if cells.mesh.ghost_mask[i]: plot.append(plt.text(coords[0],coords[1],str(cells.mesh.cell_ids[i])))
-#     if time:
-#         lims = plt.axis()
-#         plot.append(plt.text(lims[0]+0.1,lims[3]+0.1,'t = %.2f hr'%time))
-#     if centres: plot+=plt.plot(cells.mesh.centres[:,0], cells.mesh.centres[:,1], 'o',color='black')
-#     plt.show()
-#     return plot
 
-            
 def animate_finite(history, key = None, timestep=None):
     xmin,ymin = np.amin([np.amin(tissue.mesh.centres,axis=0) for tissue in history],axis=0)*1.5
     xmax,ymax = np.amax([np.amax(tissue.mesh.centres,axis=0) for tissue in history],axis=0)*1.5
@@ -197,27 +206,34 @@ def animate_finite(history, key = None, timestep=None):
             ax.cla()
             finite_plot(tissue,ax=ax)
             plt.pause(0.001)
-            
- 
-def animate_mesh(history,timestep):
+
+def animate_torus(history, key = None, timestep=None):
+    width,height = history[0].mesh.width,history[0].mesh.height
+    xmin, ymin, xmax, ymax = -0.5*width,-0.5*width ,width*1.5,height*1.5
     plt.ion()
-    v_max = np.max((np.max(history[0].mesh.centres), np.max(history[-1].mesh.centres)))
-    size = 2.0*v_max
     fig = plt.figure()
     ax = plt.axes()
-    plt.axis('scaled')
-    lim = [-0.55*size, 0.55*size]    
-    ax.set_xlim(lim)
-    ax.set_ylim(lim)
+    plt.axis('scaled')  
+    ax.set_xlim(xmin,xmax)
+    ax.set_ylim(ymin,ymax)
     fig.set_size_inches(6, 6)
     ax.set_autoscale_on(False)
     plot = []
-    for n,cells in enumerate(history):
-        if len(plot)>0: 
-            for p in plot: p.remove()
-        plot = plot_tri(cells,ax,n*timestep)
-        plt.pause(0.001)
-    
+    if key is not None:
+        key_max = max((max(tissue.by_mesh(key)) for tissue in history))
+        palette = np.array(sns.color_palette("husl", key_max+1))
+        np.random.shuffle(palette)
+        for tissue in history:
+            ax.cla()
+            torus_plot(tissue,palette,key,ax=ax)
+            plt.pause(0.001)
+    else:
+        for tissue in history:
+            ax.cla()
+            torus_plot(tissue,ax=ax)
+            plt.pause(0.01)
+            
+            
 def animate_video_mpg(history,name,index,facecolours='Default'):
     v_max = np.max((np.max(history[0].mesh.centres), np.max(history[-1].mesh.centres)))
     if key: key_max = np.max(history[0].properties[key])

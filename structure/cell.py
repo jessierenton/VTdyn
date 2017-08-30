@@ -105,7 +105,7 @@ class Tissue(object):
 
     def force_i(self,i):
         mapfunc = partial(self.force_ij,i)
-        return sum(map(mapfunc,self.mesh.neighbours(i)))
+        return sum(map(mapfunc,self.mesh.neighbours[i]))
     
     def force_total(self):
         return sum(map(self.force_i,range(len(self))))

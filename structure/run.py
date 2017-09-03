@@ -72,17 +72,17 @@ def simulation_death_and_division(tissue,dt,N_steps,rand=rand):
 def run(simulation,N_step,skip):
     return [tissue.copy() for tissue in itertools.islice(simulation,0,N_step,skip)]
 
-timend = 2
+timend = 5
 timestep = 0.01
-tissue = init_tissue_torus(6,6,0.01,rand)
-
-history = run(simulation_no_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
-
-# tissue = run(simulation_no_division(tissue,dt,1/dt,rand=rand),1/dt,timestep/dt)[-1]
-# tissue.set_attributes('age',rand.rand(tissue.mesh.N_mesh)*11+1)
+tissue = init_tissue_torus(12,12,0.01,rand)
+# history = run(simulation_no_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
+# history = run(simulation_no_division(tissue,dt,1/dt,rand=rand),1/dt,timestep/dt)
 #
-# update_progress(0)
-# history = run(simulation_with_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
+tissue = run(simulation_no_division(tissue,dt,1/dt,rand=rand),1/dt,timestep/dt)[-1]
+tissue.set_attributes('age',rand.rand(tissue.mesh.N_mesh)*10+1)
+
+update_progress(0)
+history = run(simulation_with_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
 #
 
 

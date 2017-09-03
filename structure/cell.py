@@ -20,7 +20,7 @@ class Cell(object):
     
     def __init__(self,rand,id,mother=None,age=0.,cycle_len=None,ptype=0):
         self.id = id
-        if cycle_len is None: self.cycle_len = self.cycle_dist(rand)
+        if cycle_len is None: self.cycle_len = self.delayed_uniform(rand)
         else: self.cycle_len = cycle_len
         if mother is None: mother = id
         self.ptype = ptype
@@ -33,10 +33,15 @@ class Cell(object):
     def clone(self,cell,new_id,rand):
         return Cell(rand,new_id,cell.id,ptype=cell.ptype)
         
-    def cycle_dist(self,rand,type=None):
+    def delayed_normal(self,rand,type=None):
         if type is None:
             G1_len = rand.normal(T_G1,np.sqrt(V_G1))
             G1_len = max(G1_len,min_G1)
+        return G1_len + T_other
+    
+    def delayed_uniform(self,rand,type=None):
+        if type is None:
+            G1_len = rand.rand()*T_G1
         return G1_len + T_other
             
                 
@@ -99,16 +104,18 @@ class Tissue(object):
         return L0
 
     def force_ij(self,i,j):      
-        r_len, r_hat = self.mesh.seperation(i,j)
         if r_len > r_max: return np.array((0.0,0.0))
         else: return MU*r_hat*(r_len-self.pref_sep(i,j))
 
-    def force_i(self,i):
-        mapfunc = partial(self.force_ij,i)
-        return sum(map(mapfunc,self.mesh.neighbours[i]))
+    def force_i(self,i,distances,vecs,n_list):
+        pref_sep = [self.cell_array[i].age*(L0-2*EPS) +2*EPS if self.cell_array[i].mother == self.cell_array[j].mother and self.cell_array[i].age <1.0
+                        else L0 for j in n_list]
+        return sum(MU*vecs*np.stack((distances-pref_sep,distances-pref_sep),axis=1))
+        # return sum((self.force_ij(i,j,r_len,r_hat) for j,r_len,r_hat in neighbours,distances,vecs))
     
     def force_total(self):
         return sum(map(self.force_i,range(len(self))))
     
     def dr(self,dt):
-        return (dt/ETA)*np.array([self.force_i(i) for i in range(0,self.mesh.N_mesh)])
+        distances,vecs,neighbours = self.mesh.distances,self.mesh.unit_vecs,self.mesh.neighbours
+        return (dt/ETA)*np.array([self.force_i(i,dist,vec,neigh) for i,(dist,vec,neigh) in enumerate(zip(distances,vecs,neighbours))])

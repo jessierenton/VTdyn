@@ -53,7 +53,7 @@ def get_region_for_infinite(region,vor,center,ptp_bound):
         else: region_vertices.append(far_point1); region_vertices.append(far_point2)
     return np.array(region_vertices)
 
-def torus_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False):
+def torus_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False,boundary=False):
     width, height = tissue.mesh.width, tissue.mesh.height 
     centres = tissue.mesh.centres 
     centres_3x3 = np.vstack([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]])
@@ -68,7 +68,7 @@ def torus_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,sh
     if ax is None: 
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        minx, miny, maxx, maxy = 0,0,width,height
+        minx, miny, maxx, maxy = -width/2,-height/2,width/2,height/2
         w, h = maxx - minx, maxy - miny
         ax.set_xlim(minx - 0.5 * w, maxx + 0.5 * w)
         ax.set_ylim(miny - 0.5 * h, maxy + 0.5 * h)
@@ -93,7 +93,8 @@ def torus_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,sh
         ids = tissue.by_mesh(key_label)
         for i, coords in enumerate(tissue.mesh.centres):
             plt.text(coords[0],coords[1],str(ids[i]))
-    
+    if boundary: 
+        ax.add_patch(patches.Rectangle((-width/2,-height/2),width,height,fill=False))
     plt.show()
     
     
@@ -209,14 +210,14 @@ def animate_finite(history, key = None, timestep=None):
 
 def animate_torus(history, key = None, timestep=None):
     width,height = history[0].mesh.width,history[0].mesh.height
-    xmin, ymin, xmax, ymax = -0.5*width,-0.5*width ,width*1.5,height*1.5
-    plt.ion()
     fig = plt.figure()
-    ax = plt.axes()
-    plt.axis('scaled')  
-    ax.set_xlim(xmin,xmax)
-    ax.set_ylim(ymin,ymax)
-    fig.set_size_inches(6, 6)
+    ax = fig.add_subplot(111)
+    minx, miny, maxx, maxy = -width/2,-height/2,width/2,height/2
+    w, h = maxx - minx, maxy - miny
+    ax.set_xlim(minx - 0.5 * w, maxx + 0.5 * w)
+    ax.set_ylim(miny - 0.5 * h, maxy + 0.5 * h)
+    ax.set_aspect(1)
+    plt.ion()
     ax.set_autoscale_on(False)
     plot = []
     if key is not None:

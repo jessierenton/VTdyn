@@ -67,24 +67,34 @@ class MeshTor(Mesh):
         self.N_mesh = N_mesh
         self.width,self.height = width,height
         self.centres = centres
-        self.neighbours = self._get_neighbours()
+        self.neighbours, self.distances, self.unit_vecs = self._get_neighbours()
     
     def copy(self):
         return copy.deepcopy(self)
     
     def update(self):
-        self.neighbours = self._get_neighbours()
         self.N_mesh = len(self.centres)
+        self.neighbours, self.distances, self.unit_vecs = self._get_neighbours()
         
     def move(self, i, dr):
         coords = self.periodise(self.centres[i] + dr)
         self.centres[i] = coords
     
+    def move_all(self, dr_array):
+        self.centres = self.periodise_list(self.centres + dr_array)
+    
+    def periodise_list(self,coords):
+        half_width, half_height = self.width/2., self.height/2.
+        for i,L in enumerate((half_width,half_height)):
+            if coords[:,i] >= L: coords[:,i] -= L*2
+            elif coords[:,i] < -L: coords[:,i] += L*2
+        return coords
+    
     def periodise(self,coords):
         half_width, half_height = self.width/2., self.height/2.
         for i,L in enumerate((half_width,half_height)):
-            if coords[i] >= L: coords[i] -= L
-            elif coords[i] < L: coords[i] += L
+            if coords[i] >= L: coords[i] -= L*2
+            elif coords[i] < -L: coords[i] += L*2
         return coords
     
     def add(self,pos):
@@ -108,10 +118,17 @@ class MeshTor(Mesh):
         return _convex_hull(self.centres())  
     
     def _get_neighbours(self):
+        N_mesh = self.N_mesh
         centres,width,height = self.centres,self.width,self.height
-        vnv = Delaunay(np.vstack([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]])).vertex_neighbor_vertices
-        neighbours = [(vnv[1][vnv[0][k]:vnv[0][k+1]])%self.N_mesh for k in xrange(4*self.N_mesh,5*self.N_mesh)]
-        return neighbours  
+        centres_3x3 = np.reshape([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]],(9*N_mesh,2))
+        vnv = Delaunay(np.vstack(centres_3x3)).vertex_neighbor_vertices
+        neighbours = [vnv[1][vnv[0][k]:vnv[0][k+1]] for k in xrange(4*N_mesh,5*N_mesh)]
+        sep_vectors = [centres[i]-centres_3x3[n_cell] for i,n_cell in enumerate(neighbours)]
+        norms = [np.linalg.norm(cell_vectors,axis=1) for cell_vectors in sep_vectors]
+        sep_vectors = [cell_vectors/np.stack((cell_norms,cell_norms),axis = 1) for cell_norms,cell_vectors in zip(norms,sep_vectors)]
+        neighbours = [n_set%N_mesh for n_set in neighbours] 
+        
+        return neighbours,norms,sep_vectors  
                     
 def _convex_hull(centres):
     return ConvexHull(centres)

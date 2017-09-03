@@ -9,6 +9,22 @@ def save_mean(history,outdir,key,index=0):
         wfile.write('%.6f \n'%(np.mean(tissue.by_mesh(key))))
     wfile.close() 
 
+def save_snapshots(history,outdir,key,timestep=1,snapshots='all',index=0):
+    if not os.path.exists(outdir): # if the folder doesn't exist create it
+         os.makedirs(outdir)
+    wfile = open('%s/%s_snapshot_%d'%(outdir,key,index),'w')
+    if snapshots == 'all': times = xrange(len(history))
+    else: 
+        N = len(history)
+        step = N/snapshots
+        times = xrange(0,N,step)
+    for i in times:
+        wfile.write('%.2f'    %(i*timestep))
+        for attr in history[i].by_mesh(key):
+            wfile.write('%.6f    '%attr)
+        wfile.write('\n')
+    wfile.close()
+
 
 def save_total(history,outdir,key,index=0):
     if not os.path.exists(outdir): # if the folder doesn't exist create it

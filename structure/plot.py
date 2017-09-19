@@ -7,6 +7,7 @@ from shapely.ops import polygonize
 from shapely.geometry import LineString, MultiPolygon, Polygon, MultiPoint, Point
 from scipy.spatial import Voronoi
 from descartes.patch import PolygonPatch
+import os
 
 current_palette = sns.color_palette()
 
@@ -95,7 +96,7 @@ def torus_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,sh
             plt.text(coords[0],coords[1],str(ids[i]))
     if boundary: 
         ax.add_patch(patches.Rectangle((-width/2,-height/2),width,height,fill=False))
-    plt.show()
+
     
     
 def finite_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False):
@@ -141,8 +142,7 @@ def finite_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,s
         ids = tissue.by_mesh(key_label)
         for i, coords in enumerate(tissue.mesh.centres):
             plt.text(coords[0],coords[1],str(ids[i]))
-    
-    plt.show()
+
 
 
 def plot_cells(tissue,current_palette=current_palette,key=None,ax=None,label=False,time = False,colors=None,centres=True):
@@ -178,7 +178,6 @@ def plot_cells(tissue,current_palette=current_palette,key=None,ax=None,label=Fal
     if centres: 
         real_centres = tissue.mesh.centres[~ghosts]
         plt.plot(real_centres[:,0], real_centres[:,1], 'o',color='black')        
-    plt.show()
 
 
 def animate_finite(history, key = None, timestep=None):
@@ -234,6 +233,44 @@ def animate_torus(history, key = None, timestep=None):
             torus_plot(tissue,ax=ax)
             plt.pause(0.01)
             
+def save_mpg_torus(history, name, index=None,key = None, timestep=None):
+    outputdir="images"
+    if not os.path.exists(outputdir): # if the folder doesn't exist create it
+        os.makedirs(outputdir)
+    width,height = history[0].mesh.width,history[0].mesh.height
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    minx, miny, maxx, maxy = -width/2,-height/2,width/2,height/2
+    w, h = maxx - minx, maxy - miny
+    ax.set_xlim(minx - 0.5 * w, maxx + 0.5 * w)
+    ax.set_ylim(miny - 0.5 * h, maxy + 0.5 * h)
+    ax.set_aspect(1)
+    plt.ion()
+    ax.set_autoscale_on(False)
+    frames=[]
+    i = 0
+    if key is not None:
+        key_max = max((max(tissue.by_mesh(key)) for tissue in history))
+        palette = np.array(sns.color_palette("husl", key_max+1))
+        np.random.shuffle(palette)
+        for tissue in history:
+            ax.cla()
+            torus_plot(tissue,palette,key,ax=ax)
+            frame="images/image%04i.png" % i
+            fig.savefig(frame,dpi=500)
+            frames.append(frame)
+            i+=1
+    else:
+        for tissue in history:
+            ax.cla()
+            torus_plot(tissue,ax=ax)
+            frame="images/image%04i.png" % i
+            fig.savefig(frame,dpi=500)
+            frames.append(frame)
+            i+=1
+    if index is not None: os.system("mencoder 'mf://images/image*.png' -mf type=png:fps=20 -ovc lavc -lavcopts vcodec=wmv2 -oac copy  -o " + "%s%0.3f.mpg" %(name,index))   
+    else: os.system("mencoder 'mf://images/image*.png' -mf type=png:fps=20 -ovc lavc -lavcopts vcodec=wmv2 -oac copy  -o " + ".mpg" %name) 
+    for frame in frames: os.remove(frame)
             
 def animate_video_mpg(history,name,index,facecolours='Default'):
     v_max = np.max((np.max(history[0].mesh.centres), np.max(history[-1].mesh.centres)))
@@ -256,4 +293,6 @@ def animate_video_mpg(history,name,index,facecolours='Default'):
         frame="images/image%04i.png" % i
         fig.savefig(frame,dpi=500)
         frames.append(frame)
-    os.system("mencoder 'mf://images/image*.png' -mf type=png:fps=20 -ovc lavc -lavcopts vcodec=wmv2 -oac copy  -o " + "%s%0.3f.mpg" %(name,index))               
+    os.system("mencoder 'mf://images/image*.png' -mf type=png:fps=20 -ovc lavc -lavcopts vcodec=wmv2 -oac copy  -o " + "%s%0.3f.mpg" %(name,index))   
+    for frame in frames: os.remove(frame)
+                

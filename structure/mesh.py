@@ -70,7 +70,9 @@ class MeshTor(Mesh):
         self.neighbours, self.distances, self.unit_vecs = self._get_neighbours()
     
     def copy(self):
-        return copy.deepcopy(self)
+        meshcopy = copy.copy(self)
+        meshcopy.centres = copy.copy(meshcopy.centres)
+        return meshcopy
     
     def update(self):
         self.N_mesh = len(self.centres)
@@ -86,8 +88,8 @@ class MeshTor(Mesh):
     def periodise_list(self,coords):
         half_width, half_height = self.width/2., self.height/2.
         for i,L in enumerate((half_width,half_height)):
-            if coords[:,i] >= L: coords[:,i] -= L*2
-            elif coords[:,i] < -L: coords[:,i] += L*2
+            coords[np.where(coords[:,i] >= L)[0]][:,i] -= L*2
+            coords[np.where(coords[:,i] < -L)[0]][:,i] += L*2
         return coords
     
     def periodise(self,coords):
@@ -121,11 +123,11 @@ class MeshTor(Mesh):
         N_mesh = self.N_mesh
         centres,width,height = self.centres,self.width,self.height
         centres_3x3 = np.reshape([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]],(9*N_mesh,2))
-        vnv = Delaunay(np.vstack(centres_3x3)).vertex_neighbor_vertices
+        vnv = Delaunay(centres_3x3).vertex_neighbor_vertices
         neighbours = [vnv[1][vnv[0][k]:vnv[0][k+1]] for k in xrange(4*N_mesh,5*N_mesh)]
         sep_vectors = [centres[i]-centres_3x3[n_cell] for i,n_cell in enumerate(neighbours)]
         norms = [np.linalg.norm(cell_vectors,axis=1) for cell_vectors in sep_vectors]
-        sep_vectors = [cell_vectors/np.stack((cell_norms,cell_norms),axis = 1) for cell_norms,cell_vectors in zip(norms,sep_vectors)]
+        sep_vectors = [cell_vectors/np.repeat(cell_norms[:,np.newaxis],2,axis=1) for cell_norms,cell_vectors in zip(norms,sep_vectors)]
         neighbours = [n_set%N_mesh for n_set in neighbours] 
         
         return neighbours,norms,sep_vectors  

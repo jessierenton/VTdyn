@@ -37,7 +37,7 @@ def simulation_no_division(tissue,dt,N_steps,rand=rand):
     step = 0
     while True:
         step += 1
-        tissue.move_all(tissue.dr(dt))
+        tissue.mesh.move_all(tissue.dr(dt))
         tissue.mesh.update() 
         update_progress(step/N_steps)  
         yield tissue
@@ -46,7 +46,7 @@ def simulation_with_division(tissue,dt,N_steps,rand=rand):
     step = 0.
     while True:
         step += 1
-        tissue.move_all(tissue.dr(dt))
+        tissue.mesh.move_all(tissue.dr(dt))
         ready = tissue.ready()
         for mother in ready:
             tissue.cell_division(mother,rand)
@@ -72,9 +72,9 @@ def simulation_death_and_division(tissue,dt,N_steps,rand=rand):
 def run(simulation,N_step,skip):
     return [tissue.copy() for tissue in itertools.islice(simulation,0,N_step,skip)]
 
-timend = 5
-timestep = 0.01
-tissue = init_tissue_torus(12,12,0.01,rand)
+timend = 10
+timestep = 0.1
+tissue = init_tissue_torus(8,8,0.01,rand)
 # history = run(simulation_no_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
 # history = run(simulation_no_division(tissue,dt,1/dt,rand=rand),1/dt,timestep/dt)
 #

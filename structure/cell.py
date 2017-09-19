@@ -108,9 +108,10 @@ class Tissue(object):
         else: return MU*r_hat*(r_len-self.pref_sep(i,j))
 
     def force_i(self,i,distances,vecs,n_list):
-        pref_sep = [self.cell_array[i].age*(L0-2*EPS) +2*EPS if self.cell_array[i].mother == self.cell_array[j].mother and self.cell_array[i].age <1.0
+        cell = self.cell_array[i]
+        pref_sep = [cell.age*(L0-2*EPS) +2*EPS if cell.mother == self.cell_array[j].mother and cell.age <1.0
                         else L0 for j in n_list]
-        return sum(MU*vecs*np.stack((distances-pref_sep,distances-pref_sep),axis=1))
+        return sum(MU*vecs*np.repeat((distances-pref_sep)[:,np.newaxis],2,axis=1))
         # return sum((self.force_ij(i,j,r_len,r_hat) for j,r_len,r_hat in neighbours,distances,vecs))
     
     def force_total(self):

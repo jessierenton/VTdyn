@@ -17,28 +17,6 @@ def hex_centres(N_across,N_up,noise,rand):
     
     return centres, width, height
 
-# def hex_centres(N_cell_across,N_cell_up,noise,rand):
-#     assert(N_cell_up % 2 == 0)  # expect even number of rows
-#     dx, dy = 1.0/N_cell_across, 1.0/(N_cell_up/2)
-#     x = np.arange(-0.5+dx/4, 0.5, dx)
-#     y = np.arange(-0.5+dy/4, 0.5, dy)
-#     centres = np.zeros((N_cell_across, N_cell_up/2, 2, 2))
-#     centres[:, :, 0, 0] += x[:, np.newaxis]
-#     centres[:, :, 0, 1] += y[np.newaxis, :]
-#     x += dx/2
-#     y += dy/2
-#     centres[:, :, 1, 0] += x[:, np.newaxis]
-#     centres[:, :, 1, 1] += y[np.newaxis, :]
-#
-#     ratio = np.sqrt(2/np.sqrt(3))
-#     width = N_cell_across*ratio
-#     height = N_cell_up/ratio
-#
-#     centres = centres.reshape(-1, 2)*np.array([width, height])
-#     centres += rand.rand(N_cell_up*N_cell_across, 2)*noise
-#
-#     return centres, width, height
-
 def init_tissue(N_cell_across,N_cell_up,noise,rand,mutant=None):
     centres= hex_centres(N_cell_across,N_cell_up,noise,rand)[0]
     mesh = Mesh(centres)

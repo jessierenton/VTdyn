@@ -31,7 +31,7 @@ def init_tissue_torus(N_cell_across,N_cell_up,noise,rand,mutant=None):
     return Tissue(mesh,cell_array,len(mesh))
 
 def basic_cells(mesh,rand,ptype=None):
-    cells = [Cell(rand,id,age=1.,cycle_len=None,ptype=ptype)
+    cells = [Cell(rand,id,age=1.,cycle_len=None)
         for id,centre in zip(range(len(mesh)),mesh.centres)]
     return cells
     

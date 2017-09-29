@@ -1,0 +1,7 @@
+
+death: poisson (mean 12)
+birth: delayed uniform (mean 12, delay 10)
+timend = 50.00
+timestep = 0.50
+N = 400
+

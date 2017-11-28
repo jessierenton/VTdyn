@@ -73,7 +73,7 @@ class Mesh(object):
 
 class MeshTor(Mesh):
     
-    def __init__(self,centres,width,height,N_mesh,save_areas=True):
+    def __init__(self,centres,width,height,N_mesh,save_areas=False):
         self.N_mesh = N_mesh
         self.width,self.height = width,height
         self.centres = centres
@@ -139,12 +139,15 @@ class MeshTor(Mesh):
     
     def convex_hull(self):
         return ConvexHull(self.centres())  
+
+    def delaunay(self,centres):
+        return Delaunay(centres)
             
     def get_neighbours_without_areas(self):
         N_mesh = self.N_mesh
         centres,width,height = self.centres,self.width,self.height
         centres_3x3 = np.reshape([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]],(9*N_mesh,2))
-        vnv = Delaunay(centres_3x3).vertex_neighbor_vertices
+        vnv = self.delaunay(centres_3x3).vertex_neighbor_vertices
         neighbours = [vnv[1][vnv[0][k]:vnv[0][k+1]] for k in xrange(4*N_mesh,5*N_mesh)]
         sep_vectors = [centres[i]-centres_3x3[n_cell] for i,n_cell in enumerate(neighbours)]
         norms = [np.linalg.norm(cell_vectors,axis=1) for cell_vectors in sep_vectors]

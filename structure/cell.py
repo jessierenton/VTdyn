@@ -11,7 +11,7 @@ class Cell(object):
         else: self.cycle_len = cycle_len
         if mother is None: mother = id
         # self.aod = rand.exponential(T_G1+T_other) #age of death
-        self.aod = self.delayed_uniform(rand)
+        self.aod = self.poisson_death(rand)
         self.mother = mother
         self.age = age
     
@@ -33,38 +33,40 @@ class Cell(object):
         return G1_len + T_other
     
     def poisson_death(self,rand):
-        return rand.exponential(T_other+T_G1)
+        return rand.exponential(T_D)
             
             
                 
 class Tissue(object):    
     
-    def __init__(self,mesh,cell_array,next_id):
+    def __init__(self,mesh,cell_ids=None,next_id=None,properties=None):
         self.mesh = mesh
-        self.cell_array = np.array(cell_array)
-        self.next_id = next_id
+        self.cell_ids = cell_ids or np.arange(len(mesh))
+        self.next_id = next_id or len(mesh)
+        self.properties = properties or {}
         
     def __len__(self):
         return len(self.mesh)
     
-    def by_mesh(self,key):
-        return np.array([cell.__dict__[key] for cell in self.cell_array])
+    # def by_cell_id(self,key):
+    #     return self.properties
+    #     return np.array([cell.__dict__[key] for cell in self.cell_array])
+    #
+    # def by_mesh_id(self,key,ids):
+    #     return np.array([cell.__dict__[key] for cell in self.cell_array[ids]])
+    #
+    # def set_properties(self,key,list_like):
+    #     for cell,attr in zip(self.cell_array,list_like):
+    #         cell.__dict__[key] = attr
     
-    def by_mesh_ids(self,key,ids):
-        return np.array([cell.__dict__[key] for cell in self.cell_array[ids]])
-        
-    def set_attributes(self,key,list_like):
-        for cell,attr in zip(self.cell_array,list_like):
-            cell.__dict__[key] = attr         
-    
-    def ready(self):
-        return [i for i,cell in enumerate(self.cell_array) if cell.age >= cell.cycle_len]
-    
-    def dead(self):
-        return [i for i,cell in enumerate(self.cell_array) if cell.age >= cell.aod]
+    # def ready(self):
+    #     return [i for i,cell in enumerate(self.cell_array) if cell.age >= cell.cycle_len]
+    #
+    # def dead(self):
+    #     return [i for i,cell in enumerate(self.cell_array) if cell.age >= cell.aod]
     
     def copy(self):
-        return Tissue(self.mesh.copy(),copy.deepcopy(self.cell_array),self.next_id)
+        return Tissue(self.mesh.copy(),self.cell_ids.copy(),self.next_id,self.properties.copy())
     
     def move_all(self,dr_array):
         for i, dr in enumerate(dr_array):
@@ -72,22 +74,23 @@ class Tissue(object):
     
     def remove(self,idx_list):
         self.mesh.remove(idx_list)
-        self.cell_array = np.delete(self.cell_array,idx_list)
+        for key,val in properties.iteritems():
+            properties[key] = np.delete(val,idx_list)
     
-    def add_clone(self,cell,pos,rand):
+    def add_cell(self,pos):
         self.mesh.add(pos)
-        self.cell_array = np.append(self.cell_array,cell.clone(cell,self.next_id,rand))
+        self.cell_ids = np.append(self.cell_ids,self.next_id))
         self.next_id += 1
         
-    def cell_division(self,i,rand):
+    def add_daughter_cells(self,i,rand)
+        #doesn't delete original cell
         cell = self.cell_array[i]
         angle = rand.rand()*np.pi
         dr = np.array((EPS*np.cos(angle),EPS*np.sin(angle)))
         new_cen1 = self.mesh.centres[i] + dr
         new_cen2 = self.mesh.centres[i] - dr
-        self.add_clone(cell,new_cen1,rand)
-        self.add_clone(cell,new_cen2,rand)
-        self.remove(i)
+        self.add_cell(cell,new_cen1,rand)
+        self.add_cell(cell,new_cen2,rand)
     
     def update(self,dt):
         self.mesh.update()
@@ -109,8 +112,8 @@ class Tissue(object):
         cell = self.cell_array[i]
         pref_sep = [cell.age*(L0-2*EPS) +2*EPS if cell.mother == self.cell_array[j].mother and cell.age <1.0
                         else L0 for j in n_list]
-        return sum(MU*vecs*np.repeat((distances-pref_sep)[:,np.newaxis],2,axis=1))
-        
+        return MU*vecs*np.repeat((distances-pref_sep)[:,np.newaxis],2,axis=1).sum()
+
     def force_adhesion_i(self,i,distances,vecs,n_list):
         XI = 0.1
         cell = self.cell_array[i]

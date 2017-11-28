@@ -56,22 +56,8 @@ def simulation_poisson_death_and_division(tissue,dt,N_steps,rand):
         tissue.mesh.move_all(tissue.dr(dt))
         ready = tissue.ready()
         for mother in ready:
-            tissue.cell_division(mother,rand)
+            tissue.add_daughter_cells(mother,rand)
         tissue.remove(tissue.dead())
-        tissue.update(dt)
-        update_progress(step/N_steps)  
-        yield tissue
-
-def simulation_small_removal_and_division(tissue,dt,N_steps,rand):
-    step = 0.
-    while True:
-        step += 1
-        tissue.mesh.move_all(tissue.dr(dt))
-        ready = tissue.ready()
-        for mother in ready:
-            tissue.cell_division(mother,rand)
-        small_locs = np.where(tissue.mesh.areas <= np.sqrt(3)/8)[0]
-        tissue.remove(small_locs[np.where(tissue.by_mesh_ids('age',small_locs)>1.0)[0]])
         tissue.update(dt)
         update_progress(step/N_steps)  
         yield tissue
@@ -80,7 +66,7 @@ def run(simulation,N_step,skip):
     return [tissue.copy() for tissue in itertools.islice(simulation,0,N_step,skip)]
 
 def run_simulation_no_death(N,timestep,timend,rand):
-    tissue = init.init_tissue_torus(N,N,0.01,rand)
+    tissue = init.init_tissue_torus_agedep(N,N,0.01,rand)
     history = run(simulation_with_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
     return history
 
@@ -91,8 +77,8 @@ def run_simulation_small_removal_and_div(N,timestep,timend,rand):
     return history
     
 def run_simulation_poisson_death_and_div(N,timestep,timend,rand):
-    tissue = init.init_tissue_torus(20,20,0.01,rand)
-    tissue.set_attributes('age',np.minimum(tissue.by_mesh('aod'),tissue.by_mesh('cycle_len'))*rand.rand(20*20))
+    tissue = init.init_tissue_torus(N,N,0.01,rand)
+    tissue.set_attributes('age',tissue.by_mesh('cycle_len')*rand.rand(N*N))
     history = run(simulation_poisson_death_and_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
     return history
     

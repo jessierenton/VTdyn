@@ -4,8 +4,14 @@ import itertools
 import structure
 from structure.mesh import Mesh
 from structure.global_constants import *
-from structure.cell import Tissue,Cell
+from structure.cell import Tissue
 import structure.initialisation as init
+
+def cycle_function(n,rand,*args):
+    return rand.rand(n)*T_G1*2 + T_other
+
+def death_function(n,rand,*args):
+    return rand.exponential(T_D,n)
 
 def update_progress(progress):
     barLength = 20 # Modify this to change the length of the progress bar
@@ -26,38 +32,22 @@ def update_progress(progress):
     sys.stdout.write(text)
     sys.stdout.flush()
 
-
-def simulation_no_division(tissue,dt,N_steps,rand):
-    step = 0
-    while True:
-        step += 1
-        tissue.mesh.move_all(tissue.dr(dt))
-        tissue.mesh.update() 
-        update_progress(step/N_steps)  
-        yield tissue
-
-def simulation_with_division(tissue,dt,N_steps,rand):
-    step = 0.
-    while True:
-        step += 1
-        tissue.mesh.move_all(tissue.dr(dt))
-        ready = tissue.ready()
-        for mother in ready:
-            tissue.cell_division(mother,rand)
-        tissue.update(dt)
-        update_progress(step/N_steps)  
-        yield tissue
         
-def simulation_poisson_death_and_division(tissue,dt,N_steps,rand):
+def simulation_death_and_division(tissue,dt,N_steps,rand):
     step = 0.
     death_time = rand.exponential(1/(len(tissue)*12.))
     while True:
+        properties = tissue.properties
+        mesh = tissue.mesh
         step += 1
-        tissue.mesh.move_all(tissue.dr(dt))
-        ready = tissue.ready()
+        mesh.move_all(tissue.dr(dt))
+        ready = np.where(properties['cycle_length']<=tissue.age)[0]
+        dead = np.where(properties['age_of_apoptosis']<=tissue.age)[0]
         for mother in ready:
             tissue.add_daughter_cells(mother,rand)
-        tissue.remove(tissue.dead())
+            properties['cycle_length'] = np.append(properties['cycle_length'],cycle_function(2,rand))
+            properties['age_of_apoptosis'] = np.append(properties['age_of_apoptosis'],death_function(2,rand))
+        tissue.remove(dead)
         tissue.update(dt)
         update_progress(step/N_steps)  
         yield tissue
@@ -65,23 +55,12 @@ def simulation_poisson_death_and_division(tissue,dt,N_steps,rand):
 def run(simulation,N_step,skip):
     return [tissue.copy() for tissue in itertools.islice(simulation,0,N_step,skip)]
 
-def run_simulation_no_death(N,timestep,timend,rand):
-    tissue = init.init_tissue_torus_agedep(N,N,0.01,rand)
-    history = run(simulation_with_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
-    return history
-
-def run_simulation_small_removal_and_div(N,timestep,timend,rand):
-    tissue = init.init_tissue_torus(20,20,0.01,rand)
-    tissue.set_attributes('age',rand.rand(tissue.mesh.N_mesh)*(T_G1+T_other))
-    history = run(simulation_small_removal_and_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
-    return history
     
-def run_simulation_poisson_death_and_div(N,timestep,timend,rand):
+def run_simulation_death_and_div(N,timestep,timend,rand):
     tissue = init.init_tissue_torus(N,N,0.01,rand)
-    tissue.set_attributes('age',tissue.by_mesh('cycle_len')*rand.rand(N*N))
-    history = run(simulation_poisson_death_and_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
+    tissue.properties['cycle_length'] = cycle_function(N*N,rand)*rand.rand(N*N)
+    tissue.properties['age_of_apoptosis'] = death_function(N*N,rand)
+    tissue.age = tissue.properties['cycle_length']*rand.rand(N*N)
+    history = run(simulation_death_and_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
     return history
     
-def run_simulation_no_div(N,timestep,timend,rand):
-    history = run(simulation_no_division(init.init_tissue_torus(N,N,0.01,rand),dt,timend/dt,rand=rand),timend/dt,timestep/dt)
-    return history

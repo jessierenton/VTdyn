@@ -1,5 +1,5 @@
 import numpy as np
-from cell import Cell, Tissue
+from cell import Tissue
 from mesh import Mesh,MeshTor
 
 def hex_centres(N_across,N_up,noise,rand):
@@ -17,29 +17,20 @@ def hex_centres(N_across,N_up,noise,rand):
     
     return centres, width, height
 
-def init_tissue(N_cell_across,N_cell_up,noise,rand,mutant=None):
+def init_mesh(N_cell_across,N_cell_up,noise,rand,mutant=None):
     centres= hex_centres(N_cell_across,N_cell_up,noise,rand)[0]
     mesh = Mesh(centres)
-    cell_array = basic_cells(mesh,rand,ptype=0)
-    if mutant: cell_array[rand.randint(N_cell_across*N_cell_up,size=mutant)].ptype = 1
-    return Tissue(mesh,cell_array,len(mesh))
+    return mesh
+    
+def init_mesh_torus(N_cell_across,N_cell_up,noise,rand,mutant=None):
+    centres,width,height = hex_centres(N_cell_across,N_cell_up,noise,rand)
+    return MeshTor(centres,width,height,N_cell_across*N_cell_up)
+
     
 def init_tissue_torus(N_cell_across,N_cell_up,noise,rand,mutant=None):
-    centres,width,height = hex_centres(N_cell_across,N_cell_up,noise,rand)
-    mesh = MeshTor(centres,width,height,N_cell_across*N_cell_up)
-    cell_array = basic_cells(mesh,rand,ptype=0)
-    return Tissue(mesh,cell_array,len(mesh))
-
-def basic_cells(mesh,rand,ptype=None):
-    cells = [Cell(rand,id,age=1.,cycle_len=None)
-        for id,centre in zip(range(len(mesh)),mesh.centres)]
-    return cells
-    
-    
-    
-
-    
-    
+    N = N_cell_across*N_cell_up
+    return Tissue(init_mesh_torus(N_cell_across,N_cell_up,noise,rand,mutant),np.arange(N),
+                N,np.zeros(N,dtype=float),np.full(N,-1,dtype=int),{})
     
     
     

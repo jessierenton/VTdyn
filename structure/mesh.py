@@ -109,8 +109,8 @@ class MeshTor(Mesh):
     def periodise_list(self,coords):
         half_width, half_height = self.width/2., self.height/2.
         for i,L in enumerate((half_width,half_height)):
-            coords[np.where(coords[:,i] >= L)[0]][:,i] -= L*2
-            coords[np.where(coords[:,i] < -L)[0]][:,i] += L*2
+            coords[np.where(coords[:,i] >= L)[0],i] -= L*2
+            coords[np.where(coords[:,i] < -L)[0],i] += L*2
         return coords
     
     def periodise(self,coords):

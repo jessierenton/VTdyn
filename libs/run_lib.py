@@ -42,12 +42,12 @@ def simulation_death_and_division(tissue,dt,N_steps,rand):
         step += 1
         mesh.move_all(tissue.dr(dt))
         ready = np.where(properties['cycle_length']<=tissue.age)[0]
-        dead = np.where(properties['age_of_apoptosis']<=tissue.age)[0]
         for mother in ready:
             tissue.add_daughter_cells(mother,rand)
             properties['cycle_length'] = np.append(properties['cycle_length'],cycle_function(2,rand))
             properties['age_of_apoptosis'] = np.append(properties['age_of_apoptosis'],death_function(2,rand))
-        tissue.remove(dead)
+        tissue.remove(ready)
+        tissue.remove(np.where(properties['age_of_apoptosis']<=tissue.age)[0])
         tissue.update(dt)
         update_progress(step/N_steps)  
         yield tissue

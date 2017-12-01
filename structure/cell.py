@@ -77,7 +77,7 @@ class Tissue(object):
             
     def update(self,dt):
         self.mesh.update()
-        self.age -= dt
+        self.age += dt
     
     def remove(self,idx_list):
         self.mesh.remove(idx_list)
@@ -92,7 +92,7 @@ class Tissue(object):
         dr = np.array((EPS*np.cos(angle),EPS*np.sin(angle)))
         new_cen1 = self.mesh.centres[i] + dr
         new_cen2 = self.mesh.centres[i] - dr
-        self.mesh.add((new_cen1,new_cen2))
+        self.mesh.add([new_cen1,new_cen2])
         self.cell_ids = np.append(self.cell_ids,[self.next_id,self.next_id+1])
         self.age = np.append(self.age,[0.0,0.0])
         self.mother = np.append(self.mother,[self.cell_ids[i]]*2)

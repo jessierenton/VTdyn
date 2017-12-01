@@ -121,7 +121,6 @@ class MeshTor(Mesh):
         return coords
     
     def add(self,pos):
-        self.periodise_list(pos)
         self.centres = np.append(self.centres,pos,0)
     
     def seperation(self,i,j_list):
@@ -150,8 +149,8 @@ class MeshTor(Mesh):
         vnv = self.delaunay(centres_3x3).vertex_neighbor_vertices
         neighbours = [vnv[1][vnv[0][k]:vnv[0][k+1]] for k in xrange(4*N_mesh,5*N_mesh)]
         sep_vectors = [centres[i]-centres_3x3[n_cell] for i,n_cell in enumerate(neighbours)]
-        # norms = np.sqrt((sep_vectors*sep_vectors).sum(axis=1))
-        norms = [np.linalg.norm(cell_vectors,axis=1) for cell_vectors in sep_vectors]
+        norms = [np.sqrt((cell_vectors*cell_vectors).sum(axis=1)) for cell_vectors in sep_vectors]
+        # norms = [np.linalg.norm(cell_vectors,axis=1) for cell_vectors in sep_vectors]
         sep_vectors = [cell_vectors/np.repeat(cell_norms[:,np.newaxis],2,axis=1) for cell_norms,cell_vectors in zip(norms,sep_vectors)]
         neighbours = [n_set%N_mesh for n_set in neighbours] 
     

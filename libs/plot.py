@@ -54,7 +54,7 @@ def get_region_for_infinite(region,vor,center,ptp_bound):
         else: region_vertices.append(far_point1); region_vertices.append(far_point2)
     return np.array(region_vertices)
 
-def torus_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False,boundary=False):
+def torus_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False):
     width, height = tissue.mesh.width, tissue.mesh.height 
     centres = tissue.mesh.centres 
     centres_3x3 = np.vstack([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]])
@@ -84,12 +84,15 @@ def torus_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,sh
     if show_centres: 
         plt.plot(centres[:,0], centres[:,1], 'o',color='black')
     if cell_ids:
-        ids = tissue.by_mesh('id')
+        ids = tissue.cell_ids
         for i, coords in enumerate(tissue.mesh.centres):
             plt.text(coords[0],coords[1],str(ids[i]))
     if mesh_ids:
         for i, coords in enumerate(tissue.mesh.centres):
             plt.text(coords[0],coords[1],str(i))
+    if areas:
+        for area, coords in zip(tissue.mesh.areas,tissue.mesh.centres):
+            plt.text(coords[0],coords[1],'%.2f'%area)
     if key_label is not None:
         ids = tissue.by_mesh(key_label)
         for i, coords in enumerate(tissue.mesh.centres):

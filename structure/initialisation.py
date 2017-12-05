@@ -2,7 +2,7 @@ import numpy as np
 from cell import Tissue
 from mesh import Mesh,MeshTor
 
-def hex_centres(N_across,N_up,noise,rand):
+def hex_centres(N_across,N_up,noise,rand,multiplier=1):
     assert(N_up % 2 == 0)  # expect even number of rows    
     width, height = float(N_across), float(N_up)*np.sqrt(3)/2
     x = np.arange(-width/2.,width/2.,width/N_across)
@@ -15,23 +15,28 @@ def hex_centres(N_across,N_up,noise,rand):
     centres = centres.reshape(-1, 2) + np.array([0.25,3**0.5/4])
     centres += (rand.rand(N_up*N_across, 2)-0.5)*noise 
     
-    return centres, width, height
+    return centres*multiplier, width*multiplier, height*multiplier
 
-def init_mesh(N_cell_across,N_cell_up,noise,rand,mutant=None):
+def init_mesh(N_cell_across,N_cell_up,noise,rand,mutant=None,save_areas=False):
     centres= hex_centres(N_cell_across,N_cell_up,noise,rand)[0]
     mesh = Mesh(centres)
     return mesh
     
-def init_mesh_torus(N_cell_across,N_cell_up,noise,rand,mutant=None):
-    centres,width,height = hex_centres(N_cell_across,N_cell_up,noise,rand)
-    return MeshTor(centres,width,height,N_cell_across*N_cell_up)
+def init_mesh_torus(N_cell_across,N_cell_up,noise,rand,multiplier=1,mutant=None,save_areas=False):
+    centres,width,height = hex_centres(N_cell_across,N_cell_up,noise,rand,multiplier)
+    return MeshTor(centres,width,height,N_cell_across*N_cell_up,save_areas)
 
     
-def init_tissue_torus(N_cell_across,N_cell_up,noise,rand,mutant=None):
+def init_tissue_torus(N_cell_across,N_cell_up,noise,rand,mutant=None,save_areas=False):
     N = N_cell_across*N_cell_up
-    return Tissue(init_mesh_torus(N_cell_across,N_cell_up,noise,rand,mutant),np.arange(N),
-                N,np.zeros(N,dtype=float),np.full(N,-1,dtype=int),{})
+    return Tissue(init_mesh_torus(N_cell_across,N_cell_up,noise,rand,mutant,save_areas=save_areas),np.arange(N),
+                N,np.zeros(N,dtype=float),np.full(N,-1,dtype=int))
     
+def init_tissue_torus_with_multiplier(N_cell_across,N_cell_up,noise,rand,multiplier,ages=None,mutant=None,save_areas=False):
+    if ages is None: ages = np.zeros(N,dtype=float)
+    N = N_cell_across*N_cell_up
+    return Tissue(init_mesh_torus(N_cell_across,N_cell_up,noise,rand,multiplier,mutant,save_areas=save_areas),np.arange(N),
+                N,ages,np.full(N,-1,dtype=int))
     
     
     

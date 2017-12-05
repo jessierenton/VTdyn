@@ -164,13 +164,13 @@ class MeshTor(Mesh):
         pairs = vor.ridge_points
         neighbours = [pairs[loc[0],1-loc[1]] for loc in (np.where(pairs==k) for k in xrange(4*N_mesh,5*N_mesh))]
         sep_vectors = [centres[i]-centres_3x3[n_cell] for i,n_cell in enumerate(neighbours)]
-        norms = [np.linalg.norm(cell_vectors,axis=1) for cell_vectors in sep_vectors]
+        norms = [np.sqrt((cell_vectors*cell_vectors).sum(axis=1)) for cell_vectors in sep_vectors]
         sep_vectors = [cell_vectors/np.repeat(cell_norms[:,np.newaxis],2,axis=1) for cell_norms,cell_vectors in zip(norms,sep_vectors)]
         neighbours = [n_set%N_mesh for n_set in neighbours] 
-        areas = np.abs([self.get_cell_area(vor.vertices[polygon]) for polygon in np.array(vor.regions)[vor.point_region]])
+        areas = np.abs([self.get_cell_area(vor.vertices[polygon]) for polygon in np.array(vor.regions)[vor.point_region][4*N_mesh:5*N_mesh]])
     
         return neighbours,norms,sep_vectors,areas
-
+        
     def get_cell_area(self,points):
         n_p = len(points)
         return 0.5*sum(points[i][0]*points[(i+1)%n_p][1]-points[(i+1)%n_p][0]*points[i][1] for i in range(n_p))

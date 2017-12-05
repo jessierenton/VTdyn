@@ -33,9 +33,8 @@ def update_progress(progress):
     sys.stdout.flush()
 
         
-def simulation_death_and_division(tissue,dt,N_steps,rand):
+def simulation_age_dependent(tissue,dt,N_steps,rand):
     step = 0.
-    death_time = rand.exponential(1/(len(tissue)*12.))
     while True:
         properties = tissue.properties
         mesh = tissue.mesh
@@ -52,15 +51,52 @@ def simulation_death_and_division(tissue,dt,N_steps,rand):
         update_progress(step/N_steps)  
         yield tissue
         
+def simulation_size_dependent(tissue,dt,N_steps,rand):
+    step = 0.
+    while True:
+        N= len(tissue)
+        mesh = tissue.mesh
+        step += 1
+        mesh.move_all(tissue.dr(dt))
+        ready = np.where(tissue.mesh.areas>=(np.sqrt(3)/2)*(2*RHO)**2)[0]
+        for mother in ready:
+            tissue.add_daughter_cells(mother,rand)
+        tissue.remove(ready)
+        if rand.rand() < (1./T_D)*N*dt:
+            tissue.remove(rand.randint(N))
+        tissue.update(dt)
+        update_progress(step/N_steps)  
+        yield tissue
+
+def simulation_no_division(tissue,dt,N_steps,rand):
+    step = 0.
+    while True:
+        N= len(tissue)
+        mesh = tissue.mesh
+        step += 1
+        mesh.move_all(tissue.dr(dt))
+        tissue.update(dt)
+        update_progress(step/N_steps)  
+        yield tissue
+        
 def run(simulation,N_step,skip):
     return [tissue.copy() for tissue in itertools.islice(simulation,0,N_step,skip)]
 
     
-def run_simulation_death_and_div(N,timestep,timend,rand):
+def run_simulation_age_dependent(N,timestep,timend,rand):
     tissue = init.init_tissue_torus(N,N,0.01,rand)
     tissue.properties['cycle_length'] = cycle_function(N*N,rand)*rand.rand(N*N)
     tissue.properties['age_of_apoptosis'] = death_function(N*N,rand)
     tissue.age = tissue.properties['cycle_length']*rand.rand(N*N)
-    history = run(simulation_death_and_division(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
+    history = run(simulation_age_dependent(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
     return history
+
+def run_simulation_size_dependent(N,timestep,timend,rand):
+    ages = rand.rand(N*N)*(T_G1+T_other)
+    multiplier = np.mean(RHO+ALPHA*(ages))
+    tissue = init.init_tissue_torus_with_multiplier(N,N,0.01,rand,multiplier,ages,save_areas=True)
+    # history = run(simulation_no_division(tissue,dt,2./dt,rand=rand),2./dt,timestep/dt)
+    history = run(simulation_size_dependent(tissue,dt,timend/dt,rand=rand),timend/dt,timestep/dt)
+    return history
+    
     

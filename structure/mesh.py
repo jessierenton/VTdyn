@@ -155,6 +155,45 @@ class MeshTor(Mesh):
         neighbours = [n_set%N_mesh for n_set in neighbours] 
     
         return neighbours,norms,sep_vectors
+    
+    def redelaunay_mesh(self):
+        N_mesh = self.N_mesh
+        centres,width,height = self.centres,self.width,self.height
+        centres_3x3 = np.reshape([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]],(9*N_mesh,2))
+        tri = self.delaunay(centres_3x3)
+        neighbours = [vnv[1][vnv[0][k]:vnv[0][k+1]] for k in xrange(4*N_mesh,5*N_mesh)]
+        vnv = tri.vertex_neighbor_vertices
+        sep_vectors = [centres[i]-centres_3x3[n_cell] for i,n_cell in enumerate(neighbours)]
+        norms = [np.sqrt((cell_vectors*cell_vectors).sum(axis=1)) for cell_vectors in sep_vectors]
+        [self.get_area(tri,i) for i in range(4*N_mesh,5*N_mesh)]
+    
+    def get_seperation(self,i,j,neighbours,norms):
+        return norms[np.where(neighbours[i]==j)[0]]
+        
+    
+    def self.get_area(tri,i):
+        simplices = np.where(tri.simplices==i)[0]
+        tri_centres = [get_simplex_centre(tri,simplex) for simplex in simplices]]
+        
+    def get_simplex_centre(self,tri,simplex,neighbours,norms):
+        L = np.array()[norms[np.where(neighbours[1]==2)[0],norms[np.where(neighbours[2]==0)[0],norms[np.where(neighbours[0]==1)[0]]])
+        LAM = np.array([L[i]**2*(L[(i+1)%3]**2)+L[(i+2)%3]**2)-L[i]**2 for i in (0,1,2)])
+        
+            
+        
+    # def get_neighbours_without_areas(self):
+    #     N_mesh = self.N_mesh
+    #     centres,width,height = self.centres,self.width,self.height
+    #     centres_3x3 = np.reshape([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]],(9*N_mesh,2))
+    #     vnv = self.delaunay(centres_3x3).vertex_neighbor_vertices
+    #     neighbours = [vnv[1][vnv[0][k]:vnv[0][k+1]] for k in xrange(4*N_mesh,5*N_mesh)]
+    #     sep_vectors = [centres[i]-centres_3x3[n_cell] for i,n_cell in enumerate(neighbours)]
+    #     norms = [np.sqrt((cell_vectors*cell_vectors).sum(axis=1)) for cell_vectors in sep_vectors]
+    #     sep_vectors = [cell_vectors/np.repeat(cell_norms[:,np.newaxis],2,axis=1) for cell_norms,cell_vectors in zip(norms,sep_vectors)]
+    #     neighbours = [n_set%N_mesh for n_set in neighbours]
+    #
+    #     return neighbours,norms,sep_vectors,areas
+    
         
     def get_neighbours_with_areas(self):
         N_mesh = self.N_mesh

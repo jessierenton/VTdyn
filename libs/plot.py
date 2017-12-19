@@ -54,8 +54,8 @@ def get_region_for_infinite(region,vor,center,ptp_bound):
         else: region_vertices.append(far_point1); region_vertices.append(far_point2)
     return np.array(region_vertices)
 
-def torus_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False):
-    width, height = tissue.mesh.width, tissue.mesh.height 
+def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False):
+    width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
     centres = tissue.mesh.centres 
     centres_3x3 = np.vstack([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]])
     N = tissue.mesh.N_mesh
@@ -77,7 +77,7 @@ def torus_plot(tissue,palette=current_palette,key=None,key_label=None,ax=None,sh
     
     if key is None: ax.add_collection(PatchCollection([PolygonPatch(p,linewidth=3.) for p in mp]))
     else:
-        colours = palette[tissue.by_mesh(key)]
+        colours = palette[tissue.properties[key]]
         coll = PatchCollection([PolygonPatch(p,facecolor = c,linewidth=3.) for p,c in zip(mp,colours)],match_original=True)
         ax.add_collection(coll)
     
@@ -211,7 +211,7 @@ def animate_finite(history, key = None, timestep=None):
             plt.pause(0.001)
 
 def animate_torus(history, key = None, timestep=None):
-    width,height = history[0].mesh.width,history[0].mesh.height
+    width,height = history[0].mesh.geometry.width,history[0].mesh.geometry.height
     fig = plt.figure()
     ax = fig.add_subplot(111)
     minx, miny, maxx, maxy = -width/2,-height/2,width/2,height/2
@@ -223,9 +223,11 @@ def animate_torus(history, key = None, timestep=None):
     ax.set_autoscale_on(False)
     plot = []
     if key is not None:
-        key_max = max((max(tissue.by_mesh(key)) for tissue in history))
-        palette = np.array(sns.color_palette("husl", key_max+1))
-        np.random.shuffle(palette)
+        key_max = max((max(tissue.properties[key]) for tissue in history))
+        if key_max>6:
+            palette = np.array(sns.color_palette("husl", key_max+1))
+            np.random.shuffle(palette)
+        else: palette = np.array(current_palette)
         for tissue in history:
             ax.cla()
             torus_plot(tissue,palette,key,ax=ax)
@@ -240,7 +242,7 @@ def save_mpg_torus(history, name, index=None,key = None, timestep=None):
     outputdir="images"
     if not os.path.exists(outputdir): # if the folder doesn't exist create it
         os.makedirs(outputdir)
-    width,height = history[0].mesh.width,history[0].mesh.height
+    width,height = history[0].mesh.geometry.width,history[0].mesh.geometry.height
     fig = plt.figure()
     ax = fig.add_subplot(111)
     minx, miny, maxx, maxy = -width/2,-height/2,width/2,height/2
@@ -253,13 +255,15 @@ def save_mpg_torus(history, name, index=None,key = None, timestep=None):
     frames=[]
     i = 0
     if key is not None:
-        key_max = max((max(tissue.by_mesh(key)) for tissue in history))
-        palette = np.array(sns.color_palette("husl", key_max+1))
-        np.random.shuffle(palette)
+        key_max = max((max(tissue.properties[key]) for tissue in history))
+        if key_max>6:
+            palette = np.array(sns.color_palette("husl", key_max+1))
+            np.random.shuffle(palette)
+        else: palette = np.array(current_palette)
         for tissue in history:
             ax.cla()
             torus_plot(tissue,palette,key,ax=ax)
-            frame="images/image%04i.png" % i
+            frame="images/image%d.png" % i
             fig.savefig(frame,dpi=500)
             frames.append(frame)
             i+=1

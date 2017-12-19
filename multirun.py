@@ -11,9 +11,9 @@ import libs.plot as vplt
 
 rand = np.random.RandomState()
 
-runs = 4
-l = 10
-timend = 2000.
+runs = 100
+l = 12
+timend = 10000.
 timestep = 2.0
 
 folder = 'multirun'

@@ -1,6 +1,6 @@
 import numpy as np
 from cell import Tissue
-from mesh import Mesh,MeshTor
+from mesh import Mesh,Torus
 
 def hex_centres(N_across,N_up,noise,rand,multiplier=1):
     assert(N_up % 2 == 0)  # expect even number of rows    
@@ -24,8 +24,7 @@ def init_mesh(N_cell_across,N_cell_up,noise,rand,mutant=None,save_areas=False):
     
 def init_mesh_torus(N_cell_across,N_cell_up,noise,rand,multiplier=1,mutant=None,save_areas=False):
     centres,width,height = hex_centres(N_cell_across,N_cell_up,noise,rand,multiplier)
-    return MeshTor(centres,width,height,N_cell_across*N_cell_up,save_areas)
-
+    return Mesh(centres,Torus(width,height))
     
 def init_tissue_torus(N_cell_across,N_cell_up,noise,rand,mutant=None,save_areas=False):
     N = N_cell_across*N_cell_up

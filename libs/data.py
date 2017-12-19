@@ -55,6 +55,37 @@ def save_N_cell(history,outdir,index=0):
          os.makedirs(outdir)
     wfilename = '%s/%s_%d'%(outdir,'N_cell',index)  
     np.savetxt(wfilename,[len(tissue) for tissue in history],fmt=('%d'))
+
+def save_N_mutant(history,outdir,index=0):
+    if not os.path.exists(outdir): # if the folder doesn't exist create it
+         os.makedirs(outdir)
+    wfilename = '%s/%s_%d'%(outdir,'N_mutant',index)  
+    np.savetxt(wfilename,[sum(tissue.properties['mutant']) for tissue in history],fmt=('%d'))
+
+def save_division_times(history,outdir,index=0):
+    if not os.path.exists(outdir): # if the folder doesn't exist create it
+         os.makedirs(outdir)
+    divfile = '%s/%s_%d'%(outdir,'division_age',index)
+    deathfile = '%s/%s_%d'%(outdir,'death_age',index)
+    death_age = np.array([])
+    division_age = np.array([])
+    for i in range(len(history)-1):
+        dead = np.setdiff1d(history[i].cell_ids,history[i+1].cell_ids)
+        for id in dead:
+            idx = np.where(history[i].cell_ids == id)[0]
+            age = history[i].age[idx]
+            if id in history[i+1].mother: division_age = np.append(division_age,age)
+            else: death_age = np.append(death_age,age)
+            
+    np.savetxt(deathfile,death_age,fmt=('%d'))
+    np.savetxt(divfile,division_age,fmt=('%d'))
+    
+def plot_age_dist(readfile):
+    ages = np.loadtxt(readfile)
+    min,max = np.min(ages),np.max(ages)
+    bins=np.bincount(ages)[min:]
+    plt.bar(range(min,max),bins,0.4)
+        
     
 def save_all(history,outdir,index=0):
     save_N_cell(history,outdir,index)

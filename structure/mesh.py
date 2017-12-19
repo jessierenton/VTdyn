@@ -1,9 +1,5 @@
 import numpy as np
 from scipy.spatial import Delaunay, Voronoi, voronoi_plot_2d, ConvexHull
-# import matplotlib.pyplot as plt
-# from matplotlib.collections import PolyCollection
-# import matplotlib.patches as patches
-# import seaborn as sns
 import copy
 
 def polygon_area(points):

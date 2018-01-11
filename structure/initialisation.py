@@ -26,15 +26,15 @@ def init_mesh_torus(N_cell_across,N_cell_up,noise,rand,multiplier=1,mutant=None,
     centres,width,height = hex_centres(N_cell_across,N_cell_up,noise,rand,multiplier)
     return Mesh(centres,Torus(width,height))
     
-def init_tissue_torus(N_cell_across,N_cell_up,noise,rand,mutant=None,save_areas=False):
+def init_tissue_torus(N_cell_across,N_cell_up,noise,force,rand,mutant=None,save_areas=False):
     N = N_cell_across*N_cell_up
-    return Tissue(init_mesh_torus(N_cell_across,N_cell_up,noise,rand,mutant,save_areas=save_areas),np.arange(N),
+    return Tissue(init_mesh_torus(N_cell_across,N_cell_up,noise,rand,mutant,save_areas=save_areas),force,np.arange(N),
                 N,np.zeros(N,dtype=float),np.full(N,-1,dtype=int))
     
-def init_tissue_torus_with_multiplier(N_cell_across,N_cell_up,noise,rand,multiplier,ages=None,mutant=None,save_areas=False):
+def init_tissue_torus_with_multiplier(N_cell_across,N_cell_up,noise,force,rand,multiplier,ages=None,mutant=None,save_areas=False):
     if ages is None: ages = np.zeros(N,dtype=float)
     N = N_cell_across*N_cell_up
-    return Tissue(init_mesh_torus(N_cell_across,N_cell_up,noise,rand,multiplier,mutant,save_areas=save_areas),np.arange(N),
+    return Tissue(init_mesh_torus(N_cell_across,N_cell_up,noise,rand,multiplier,mutant,save_areas=save_areas),force,np.arange(N),
                 N,ages,np.full(N,-1,dtype=int))
     
     

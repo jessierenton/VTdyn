@@ -3,7 +3,7 @@ import numpy as np
 import itertools
 import structure
 from structure.global_constants import *
-from structure.cell import Tissue
+from structure.cell import Tissue, BasicSpringForce, SpringForce
 import structure.initialisation as init
 
 
@@ -103,13 +103,32 @@ def simulation_size_dependent(tissue,dt,N_steps,stepsize,rand):
 def run_simulation_size_dependent(N,timestep,timend,rand):
     ages = rand.rand(N*N)*(T_G1+T_other)
     multiplier = np.mean(RHO+ALPHA*(ages))
-    tissue = init.init_tissue_torus_with_multiplier(N,N,0.01,rand,multiplier,ages,save_areas=True)
+    force = BasicSpringForce()
+    tissue = init.init_tissue_torus_with_multiplier(N,N,0.01,force,rand,multiplier,ages,save_areas=True)
     tissue.properties['ancestor'] = np.arange(N*N)
-    history = run(simulation_size_dependent(tissue,dt,timend/dt,timestep/dt,rand=rand),timend/dt,timestep/dt)
+    tissue1 = tissue.copy()
+    history = [tissue1]+run(simulation_size_dependent(tissue,dt,timend/dt,timestep/dt,rand=rand),timend/dt,timestep/dt)
     return history
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #------------------------------------------SIZE-DEPENDENCE-WITH-MUTATION---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def simulation_size_dependent_without_mutants(tissue,dt,N_steps,stepsize,rand):
+    step = 0.
+    while True:
+        N= len(tissue)
+        mesh = tissue.mesh
+        step += 1
+        mesh.move_all(tissue.dr(dt))
+        ready = np.where(tissue.mesh.areas>=(np.sqrt(3)/2)*(2*RHO)**2)[0]
+        for mother in ready:
+            tissue.add_daughter_cells(mother,rand)
+        tissue.remove(ready)
+        if rand.rand() < (1./T_D)*N*dt:
+            tissue.remove(rand.randint(N))
+        tissue.update(dt)
+        # update_progress(step/N_steps)
+        yield tissue
 
 def simulation_size_dependent_with_mutants(tissue,dt,N_steps,stepsize,rand):
     step = 0.
@@ -118,7 +137,7 @@ def simulation_size_dependent_with_mutants(tissue,dt,N_steps,stepsize,rand):
         N= len(tissue)
         mesh = tissue.mesh
         step += 1
-        mesh.move_all(tissue.dr_variableMU(dt,0.1))
+        mesh.move_all(tissue.dr(dt))
         ready = np.where(tissue.mesh.areas>=(np.sqrt(3)/2)*(2*RHO)**2)[0]
         for mother in ready:
             tissue.add_daughter_cells(mother,rand)
@@ -127,16 +146,26 @@ def simulation_size_dependent_with_mutants(tissue,dt,N_steps,stepsize,rand):
         if rand.rand() < (1./T_D)*N*dt:
             tissue.remove(rand.randint(N))
         tissue.update(dt)
-        update_progress(step/N_steps)
+        # update_progress(step/N_steps)
         yield tissue
 
-def run_simulation_size_dependent_with_mutants(N,timestep,timend,rand):
+def run_simulation_size_dependent_with_mutants(delta,N,timestep,timend,rand):
     ages = rand.rand(N*N)*(T_G1+T_other)
-    multiplier = np.mean(RHO+ALPHA*(ages))
-    tissue = init.init_tissue_torus_with_multiplier(N,N,0.01,rand,multiplier,ages,save_areas=True)
-    tissue.properties['mutant'] = np.zeros(N*N,dtype=int)
-    tissue.properties['mutant'][rand.randint(N*N)]=1
+    multiplier = RHO+ALPHA*0.5*(T_G1+T_other)
+    tissue = init.init_tissue_torus_with_multiplier(N,N,0.01,BasicSpringForce(),rand,multiplier,ages,save_areas=True)
+    tissue = run(simulation_size_dependent_without_mutants(tissue,dt,10/dt,timestep/dt,rand=rand),10/dt,timestep/dt)[-1]
+    tissue.properties['mutant'] = np.zeros(len(tissue),dtype=int)
+    tissue.properties['mutant'][rand.randint(len(tissue))]=1
+    tissue.Force = SpringForce(delta)
     history = run(simulation_size_dependent_with_mutants(tissue,dt,timend/dt,timestep/dt,rand=rand),timend/dt,timestep/dt)
     return history
     
-    
+def run_simulation_size_dependent_with_neutral_mutants(N,timestep,timend,rand):
+    ages = rand.rand(N*N)*(T_G1+T_other)
+    multiplier = RHO+ALPHA*0.5*(T_G1+T_other)
+    tissue = init.init_tissue_torus_with_multiplier(N,N,0.01,BasicSpringForce(),rand,multiplier,ages,save_areas=True)
+    tissue = run(simulation_size_dependent_without_mutants(tissue,dt,10/dt,timestep/dt,rand=rand),10/dt,timestep/dt)[-1]
+    tissue.properties['mutant'] = np.zeros(len(tissue),dtype=int)
+    tissue.properties['mutant'][rand.randint(len(tissue))]=1
+    history = run(simulation_size_dependent_with_mutants(tissue,dt,timend/dt,timestep/dt,rand=rand),timend/dt,timestep/dt)
+    return history    

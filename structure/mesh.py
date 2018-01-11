@@ -7,6 +7,7 @@ def polygon_area(points):
     return 0.5*sum(points[i][0]*points[(i+1)%n_p][1]-points[(i+1)%n_p][0]*points[i][1] for i in range(n_p))
 
 class Geometry(object):
+    
     def periodise(self,r):
         return r
     
@@ -83,6 +84,7 @@ class Mesh(object):
                 vnv = contains neighbour information for cells (extract using neighbours method)
                 tri = (N_mesh,3) array containing indices of centres forming triangles (used for plot_tri method)
     """
+
     
     def __init__(self,centres,geometry):
         self.N_mesh = len(centres)

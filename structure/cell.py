@@ -5,9 +5,10 @@ from global_constants import *
 
                 
 class Tissue(object):    
-    
-    def __init__(self,mesh,cell_ids=None,next_id=None,age=None,mother=None,properties=None):
+
+    def __init__(self,mesh,force,cell_ids=None,next_id=None,age=None,mother=None,properties=None):
         self.mesh = mesh
+        self.Force = force
         N = len(mesh)
         self.cell_ids = cell_ids
         self.next_id = next_id
@@ -19,7 +20,7 @@ class Tissue(object):
         return len(self.mesh)
     
     def copy(self):
-        return Tissue(self.mesh.copy(),self.cell_ids.copy(),self.next_id,self.age.copy(),self.mother.copy(),self.properties.copy())
+        return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(),self.mother.copy(),self.properties.copy())
     
     def move_all(self,dr_array):
         for i, dr in enumerate(dr_array):
@@ -46,29 +47,40 @@ class Tissue(object):
         self.cell_ids = np.append(self.cell_ids,[self.next_id,self.next_id+1])
         self.age = np.append(self.age,[0.0,0.0])
         self.mother = np.append(self.mother,[self.cell_ids[i]]*2)
-        self.next_id += 1
-
-    # def force_i(self,i,distances,vecs,n_list):
-#         pref_sep = RHO+0.5*ALPHA*(self.age[n_list]+self.age[i])
-#         # pref_sep[pref_sep>2.] = 2.
-#         MU_vals = 0.5*(self.properties['mutant'][n_list]*5+MU+self.properties['mutant'][i])
-#         return (vecs*np.repeat((MU_vals*(distances-pref_sep))[:,np.newaxis],2,axis=1)).sum(axis=0)
+        self.next_id += 2
         
-    def force_i(self,i,distances,vecs,n_list):
-        pref_sep = RHO+0.5*ALPHA*(self.age[n_list]+self.age[i])
-        # pref_sep[pref_sep>2.] = 2.
+    def dr(self,dt):   
+        return (dt/ETA)*self.Force(self)
+        
+        
+class Force(object):
+    
+    def force(self):
+        raise Exception('force undefined')
+    
+    def magnitude(self,tissue):
+        return np.sqrt(np.sum(np.sum(self.force(tissue),axis=0)**2))
+    
+    def __call__(self, tissue):
+        return self.force(tissue)
+
+class BasicSpringForce(Force):
+    
+    def force(self,tissue):
+        return np.array([self.force_i(tissue,i,dist,vec,neigh) for i,(dist,vec,neigh) in enumerate(zip(tissue.mesh.distances,tissue.mesh.unit_vecs,tissue.mesh.neighbours))])
+    
+    def force_i(self,tissue,i,distances,vecs,n_list):
+        pref_sep = RHO+0.5*ALPHA*(tissue.age[n_list]+tissue.age[i])
         return (MU*vecs*np.repeat((distances-pref_sep)[:,np.newaxis],2,axis=1)).sum(axis=0)
 
-    def dr(self,dt):
-        distances,vecs,neighbours = self.mesh.distances,self.mesh.unit_vecs,self.mesh.neighbours
-        return (dt/ETA)*np.array([self.force_i(i,dist,vec,neigh) for i,(dist,vec,neigh) in enumerate(zip(distances,vecs,neighbours))])
-        
-    def force_i_variableMU(self,i,distances,vecs,n_list,delta):
-        pref_sep = RHO+0.5*ALPHA*(self.age[n_list]+self.age[i])
-        MU_list = MU*(1-0.5*delta*(self.properties['mutant'][n_list]+self.properties['mutant'][i]))
-        # pref_sep[pref_sep>2.] = 2.
-        return (MU*vecs*np.repeat((distances-pref_sep)[:,np.newaxis],2,axis=1)).sum(axis=0)
+class SpringForce(BasicSpringForce):
 
-    def dr_variableMU(self,dt,delta):
-        distances,vecs,neighbours = self.mesh.distances,self.mesh.unit_vecs,self.mesh.neighbours
-        return (dt/ETA)*np.array([self.force_i_variableMU(i,dist,vec,neigh,delta) for i,(dist,vec,neigh) in enumerate(zip(distances,vecs,neighbours))])
+    def __init__(self,delta):
+        self.delta = delta 
+
+    def force_i(self,tissue,i,distances,vecs,n_list):
+        pref_sep = RHO+0.5*ALPHA*(tissue.age[n_list]+tissue.age[i])
+        MU_list = MU*(1-0.5*self.delta*(tissue.properties['mutant'][n_list]+tissue.properties['mutant'][i]))
+        return (vecs*np.repeat((MU_list*(distances-pref_sep))[:,np.newaxis],2,axis=1)).sum(axis=0)
+        
+        

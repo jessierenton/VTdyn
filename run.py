@@ -1,17 +1,21 @@
 import numpy as np
 import libs.run_lib as lib
 import libs.data as data
+import libs.plot as vplt
 from structure.global_constants import *
 
-rand = np.random.RandomState(42)
+N = 6
+timend = 10
+timestep = 1.0
 
-N = 12
-timend = 50.
-timestep = 1.
+rand = np.random.RandomState()
 
 
 history = lib.run_simulation_size_dependent(N,timestep,timend,rand)
-# history = lib.run_simulation_no_death(N,timestep,timend,rand)
-# data.save_N_cell(history,'test',2)
 
-# data.save_division_times(history,'times',int(-MU))
+# vplt.save_mpg_torus(history, 'test0', index=None,key = "mutant", timestep=1.0)
+    
+# history = lib.run_simulation_size_dependent_with_neutral_mutants(N,timestep,timend,rand)
+data.save_all(history,'test',0)
+# import libs.plot as vplt
+# vplt.save_mpg_torus(history,'long',key='ancestor')

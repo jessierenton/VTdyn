@@ -46,11 +46,14 @@ class Torus(Geometry):
             coords[np.where(coords[:,i] >= L)[0],i] -= L*2
             coords[np.where(coords[:,i] < -L)[0],i] += L*2
         return coords
-
+    
+    def Voronoi(self,centres):
+        return Voronoi(centres)
+    
     def retriangulate(self,centres,N_mesh):
         width,height = self.width, self.height
         centres_3x3 = np.reshape([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]],(9*N_mesh,2))
-        vor = Voronoi(centres_3x3)
+        vor = self.Voronoi(centres_3x3)
         pairs = vor.ridge_points
         neighbours = [pairs[loc[0],1-loc[1]] for loc in (np.where(pairs==k) for k in xrange(4*N_mesh,5*N_mesh))]
         sep_vectors = [centres[i]-centres_3x3[n_cell] for i,n_cell in enumerate(neighbours)]

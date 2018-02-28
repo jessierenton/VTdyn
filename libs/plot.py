@@ -220,6 +220,8 @@ def animate_torus(history, key = None, timestep=None):
     ax.set_ylim(miny - 0.2 * h, maxy + 0.2 * h)
     ax.set_aspect(1)
     plt.ion()
+    sns.set_style('white')
+    ax.set_axis_off()
     ax.set_autoscale_on(False)
     plot = []
     if key is not None:
@@ -251,6 +253,8 @@ def save_mpg_torus(history, name, index=None,key = None, timestep=None):
     ax.set_ylim(miny - 0.5 * h, maxy + 0.5 * h)
     ax.set_aspect(1)
     plt.ion()
+    sns.set_style('white')
+    ax.set_axis_off()
     ax.set_autoscale_on(False)
     frames=[]
     i = 0
@@ -262,16 +266,18 @@ def save_mpg_torus(history, name, index=None,key = None, timestep=None):
         else: palette = np.array(current_palette)
         for tissue in history:
             ax.cla()
+            ax.set_axis_off()
             torus_plot(tissue,palette,key,ax=ax)
-            frame="images/image%d.png" % i
+            frame="images/image%05i.png" % i
             fig.savefig(frame,dpi=500)
             frames.append(frame)
             i+=1
     else:
         for tissue in history:
             ax.cla()
+            ax.set_axis_off()
             torus_plot(tissue,ax=ax)
-            frame="images/image%04i.png" % i
+            frame="images/image%05i.png" % i
             fig.savefig(frame,dpi=500)
             frames.append(frame)
             i+=1

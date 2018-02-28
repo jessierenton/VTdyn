@@ -1,7 +1,5 @@
 import os
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 def save_mean_area(history,outdir,index=0):
@@ -10,19 +8,22 @@ def save_mean_area(history,outdir,index=0):
     filename = '%s/area_mean_%d'%(outdir,index)
     np.savetxt(filename,[np.mean(tissue.mesh.areas) for tissue in history])
 
-def save_area_snapshot(history,outdir,index=0,snap=-1):
+def save_areas(history,outdir,index=0):
     if not os.path.exists(outdir): # if the folder doesn't exist create it
          os.makedirs(outdir)
-    if snap == -1: filename = '%s/area_snapshot_%s_%d'%(outdir,'f',index)
-    else: filename = '%s/area_snapshot_%d_%d'%(outdir,snap,index)
-    np.savetxt(filename,history[snap].mesh.areas)
+    filename = '%s/areas_%d'%(outdir,index)
+    wfile = open(filename,'w')
+    for tissue in history:
+        for area in tissue.mesh.areas:        
+            wfile.write('%.3e    '%area)
+        wfile.write('\n')
     
 def save_force(history,outdir,index=0):
     if not os.path.exists(outdir): # if the folder doesn't exist create it
          os.makedirs(outdir)
     wfile = open('%s/%s_%d'%(outdir,'force',index),'w')
     for tissue in history:        
-        wfile.write('%.6e \n'%np.linalg.norm(tissue.Force.magnitude(tissue)))
+        wfile.write('%.3e \n'%np.mean(np.sqrt((tissue.Force(tissue)**2).sum(axis=1))))
     wfile.close() 
 
 def save_neighbour_distr(history,outdir,index=0,snap=-1):
@@ -43,42 +44,43 @@ def save_N_mutant(history,outdir,index=0):
     wfilename = '%s/%s_%d'%(outdir,'N_mutant',index)  
     np.savetxt(wfilename,[sum(tissue.properties['mutant']) for tissue in history],fmt=('%d'))
 
-def save_division_times(history,outdir,index=0):
-    if not os.path.exists(outdir): # if the folder doesn't exist create it
-         os.makedirs(outdir)
-    divfile = '%s/%s_%d'%(outdir,'division_age',index)
-    deathfile = '%s/%s_%d'%(outdir,'death_age',index)
-    death_age = np.array([])
-    division_age = np.array([])
-    for i in range(len(history)-1):
-        dead = np.setdiff1d(history[i].cell_ids,history[i+1].cell_ids)
-        for id in dead:
-            idx = np.where(history[i].cell_ids == id)[0]
-            age = history[i].age[idx]
-            if id in history[i+1].mother: division_age = np.append(division_age,age)
-            else: death_age = np.append(death_age,age)
-            
-    np.savetxt(deathfile,death_age,fmt=('%d'))
-    np.savetxt(divfile,division_age,fmt=('%d'))
-
 def get_cell_history(history,cell_id):
-    cell_history = {'area':[],'age':[],'fate':0}
+    cell_history = {'area':[],'age':[],'fate':None}
     for tissue in history:
         if cell_id not in tissue.cell_ids and len(cell_history['area']) > 0: 
             if cell_id in tissue.mother: cell_history['fate'] = 1
+            else: cell_history['fate'] = 0
             break
         elif cell_id in tissue.cell_ids:
-            mesh_id = np.where(tissue.cell_ids == cell_id)[0]
+            mesh_id = np.where(tissue.cell_ids == cell_id)[0][0]
             cell_history['area'].append(tissue.mesh.areas[mesh_id])
             cell_history['age'].append(tissue.age[mesh_id])
     return cell_history
-    
-def save_age_snapshot(history,outdir,index=0,snap=-1):
+
+def get_cell_histories(history,start=0):
+    return [get_cell_history(history[start:],i) for i in range(max(history[-1].cell_ids)) if len(get_cell_history(history[start:],i)['age'])>0]
+
+def save_age_of_death(history,outdir,index=0):
     if not os.path.exists(outdir): # if the folder doesn't exist create it
          os.makedirs(outdir)
-    if snap == -1: filename = '%s/age_snapshot_%s_%d'%(outdir,'f',index)
-    else: filename = '%s/age_snapshot_%d_%d'%(outdir,snap,index)
-    np.savetxt(filename,history[snap].age)
+    cell_histories = np.array(get_cell_histories(history))
+    has_fate = np.array([h['fate'] is not None for h in cell_histories])
+    cell_histories = cell_histories[has_fate]
+    fates = np.array([h['fate'] for h in cell_histories],dtype=bool)
+    final_age_d = [cell['age'][-1] for cell in cell_histories[fates]]
+    final_age_a = [cell['age'][-1] for cell in cell_histories[~fates]]
+    np.savetxt('%s/division_age_%d'%(outdir,index),final_age_d)
+    np.savetxt('%s/apoptosis_age_%d'%(outdir,index),final_age_a)
+    
+def save_ages(history,outdir,index=0):
+    if not os.path.exists(outdir): # if the folder doesn't exist create it
+         os.makedirs(outdir)
+    filename = '%s/ages_%d'%(outdir,index)
+    wfile = open(filename,'w')
+    for tissue in history:
+        for age in tissue.age:        
+            wfile.write('%.3e    '%age)
+        wfile.write('\n')    
     
 def save_mean_age(history,outdir,index=0):
     if not os.path.exists(outdir): # if the folder doesn't exist create it
@@ -96,12 +98,11 @@ def plot_age_dist(readfile):
 def save_all(history,outdir,index=0):
     save_N_cell(history,outdir,index)
     # save_N_mutant(history,outdir,index)
-    save_mean_age(history,outdir,index)
-    save_age_snapshot(history,outdir,index)
+    save_ages(history,outdir,index)
     save_neighbour_distr(history,outdir,index)
     save_force(history,outdir,index)
-    save_area_snapshot(history,outdir,index)
-    save_mean_area(history,outdir,index)
+    save_areas(history,outdir,index)
+    # save_age_of_death(history,outdir,index)
     
     
     

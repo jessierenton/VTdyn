@@ -43,7 +43,7 @@ def save_N_mutant(history,outdir,index=0):
          os.makedirs(outdir)
     wfilename = '%s/%s_%d'%(outdir,'N_mutant',index)  
     np.savetxt(wfilename,[sum(tissue.properties['mutant']) for tissue in history],fmt=('%d'))
-    
+
 def save_N_mutant_type(history,outdir,index=0):
     if not os.path.exists(outdir): # if the folder doesn't exist create it
          os.makedirs(outdir)

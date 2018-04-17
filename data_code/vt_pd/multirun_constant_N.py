@@ -9,21 +9,26 @@ import numpy as np
 import libs.run_lib as lib
 import libs.data as data
 # import libs.plot as vplt
-from libs.run_lib import run_simulation_poisson_const_pop_size,prisoners_dilemma_averaged
+from libs.run_lib import run_simulation_poisson_const_pop_size,prisoners_dilemma_averaged,prisoners_dilemma_accumulated
 from functools import partial
 
-b_vals = np.array(sys.argv[3:],dtype=float)
+game_str = sys.argv[1]
+if game_str == 'acc': game = prisoners_dilemma_accumulated
+elif game_str == 'av': game = prisoners_dilemma_averaged
+else: raise ValueError('invalid game string')
+
+b_vals = np.array(sys.argv[4:],dtype=float)
 #prisoner dilemma params
-c,DELTA = 1.0,0.01
+c,DELTA = 1.0,0.025
 
 rand = np.random.RandomState()
-outdir = 'delta%.23f_pd_av'%DELTA
+outdir = 'delta%.3f_pd_%s'%(DELTA,game_str)
 
-l = 4
+l = 10
 timend = 10000.
 timestep = 12.0
 
-start_batch,end_batch = int(sys.argv[1]),int(sys.argv[2])
+start_batch,end_batch = int(sys.argv[2]),int(sys.argv[3])
 runs_per_batch = 1000
 
 

@@ -8,11 +8,11 @@ N = 4
 timend = 40
 timestep = 1.
 
-rand = np.random.RandomState(12)
+rand = np.random.RandomState()
 b,c,DELTA = 10.,1.0,0.025
 
 
-history = lib.run_simulation_poisson_const_pop_size(N,timestep,timend,rand,DELTA,lib.prisoners_dilemma_accumulated,(b,c),save_areas=False)
+history = lib.run_simulation_poisson_const_pop_size(N,timestep,timend,rand,(b,c,DELTA),save_areas=False)
 
 
 # data.save_all(history,'test',12)

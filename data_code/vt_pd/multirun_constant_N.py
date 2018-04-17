@@ -76,7 +76,7 @@ def run_parallel(b,i):
 cpunum=mp.cpu_count()
 pool = Pool(processes=cpunum,maxtasksperchild=1000) # creating a pool with processors equal to the number of processors
 for b in b_vals:
-    fix_results = open(outdir+'/fix_b%.1f'%b,'w',0)
+    fix_results = open(outdir+'/fix_b%.1f'%b,'a',0)
     for i in range(start_batch,end_batch):
         text = '\r running batch %d of %d'%(i+1,end_batch)
         sys.stdout.write(text)

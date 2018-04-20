@@ -242,7 +242,7 @@ def animate_torus(history, key = None, timestep=None):
             torus_plot(tissue,ax=ax)
             plt.pause(0.001)
             
-def save_mpg_torus(history, name, index=None,key = None, timestep=None):
+def save_mpg_torus(history, name, index=None,key = None, timestep=None,delete_images=True):
     outputdir="images"
     if not os.path.exists(outputdir): # if the folder doesn't exist create it
         os.makedirs(outputdir)
@@ -285,7 +285,8 @@ def save_mpg_torus(history, name, index=None,key = None, timestep=None):
             i+=1
     if index is not None: os.system("mencoder 'mf://images/image*.png' -mf type=png:fps=20 -ovc lavc -lavcopts vcodec=wmv2 -oac copy  -o " + "%s%0.3f.mpg" %(name,index))   
     else: os.system("mencoder 'mf://images/image*.png' -mf type=png:fps=20 -ovc lavc -lavcopts vcodec=wmv2 -oac copy  -o " + "%s.mpg" %name) 
-    for frame in frames: os.remove(frame)
+    if delete_images: 
+        for frame in frames: os.remove(frame)
             
 def animate_video_mpg(history,name,index,facecolours='Default'):
     v_max = np.max((np.max(history[0].mesh.centres), np.max(history[-1].mesh.centres)))

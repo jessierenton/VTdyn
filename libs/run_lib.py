@@ -41,54 +41,6 @@ def simulation_no_division(tissue,dt,N_steps,rand):
 def run(tissue_original,simulation,N_step,skip):
     return [tissue_original.copy()]+[tissue.copy() for tissue in itertools.islice(simulation,skip-1,N_step,skip)]
 
-#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#------------------------------------------POISSON-CONSTANT-POP-SIZE-AND-FITNESS------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-def prisoners_dilemma_averaged(cell_type,neighbour_types,b,c):
-    return -c*cell_type+b*np.sum(neighbour_types)/len(neighbour_types)
-
-def prisoners_dilemma_accumulated(cell_type,neighbour_types,b,c):
-    return -c*cell_type*len(neighbour_types)+b*np.sum(neighbour_types)
-#
-# def prisoners_dilemma(type_1,type_2,b,c):
-#     return type_1*type_2*(b-c)+type_1*(1-type_2)*-c+(1-type_1)*type_2*b
-
-def get_fitness(cell_type,neighbour_types,DELTA,game,game_constants):
-    return 1+DELTA*game(cell_type,neighbour_types,*game_constants)
-
-def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_constants):
-    return np.array([get_fitness(types[cell],types[neighbours],DELTA,game,game_constants) for cell,neighbours in enumerate(neighbours_by_cell)])
-
-def simulation_poisson_const_pop_size(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,initial=False):
-    step = 0.
-    while True:
-        if (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==1 and not initial: break
-        N= len(tissue)
-        properties = tissue.properties
-        mesh = tissue.mesh
-        step += 1
-        mesh.move_all(tissue.dr(dt))
-        if rand.rand() < (1./T_D)*N*dt:
-            fitnesses = recalculate_fitnesses(tissue.mesh.neighbours,properties['type'],DELTA,game,game_constants)
-            mother = rand.choice(N,p=fitnesses/sum(fitnesses))
-            tissue.add_daughter_cells(mother,rand)
-            properties['type'] = np.append(properties['type'],[properties['type'][mother]]*2)
-            tissue.remove(mother)
-            tissue.remove(rand.randint(N)) #kill random cell
-            tissue.update(dt)
-        tissue.update(dt)
-        # update_progress(step/N_steps)
-        yield tissue
-        
-
-def run_simulation_poisson_const_pop_size(N,timestep,timend,rand,DELTA,game,game_constants,save_areas=False):
-    tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
-    tissue.properties['type'] = np.zeros(N*N,dtype=int)
-    tissue.age = np.zeros(N*N,dtype=float)
-    tissue = run(tissue, simulation_poisson_const_pop_size(tissue,dt,10./dt,timestep/dt,rand,DELTA,game,game_constants,True),10./dt,timestep/dt)[-1]
-    tissue.properties['type'][rand.randint(N*N,size=1)]=1
-    history = run(tissue, simulation_poisson_const_pop_size(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,game_constants),timend/dt,timestep/dt)
-    return history
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #------------------------------------------POISSON-BIRTH-DEATH----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

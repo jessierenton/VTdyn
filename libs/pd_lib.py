@@ -72,14 +72,36 @@ def simulation_poisson_const_pop_size(tissue,dt,N_steps,stepsize,rand,DELTA,game
             properties['type'] = np.append(properties['type'],[properties['type'][mother]]*2)
             tissue.remove(mother)
             tissue.remove(rand.randint(N)) #kill random cell
-            tissue.update(dt)
         tissue.update(dt)
         # update_progress(step/N_steps)
         complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
         yield tissue
-        
 
-def run_simulation_poisqson_const_pop_size(N,timestep,timend,rand,DELTA,game,game_constants,save_areas=False):
+def simulation_death_birth(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,initial=False):
+    step = 0.
+    complete = False
+    while initial or not complete:
+        N= len(tissue)
+        properties = tissue.properties
+        mesh = tissue.mesh
+        step += 1
+        mesh.move_all(tissue.dr(dt))
+        if rand.rand() < (1./T_D)*N*dt:
+            dead_cell = rand.randint(N)
+            dead_cell_neighbours = tissue.mesh.neighbours[dead_cell]
+            neighbours_by_cell = [tissue.mesh.neighbours[dcn] for dcn in dead_cell_neighbours]
+            fitnesses = np.array([get_fitness(tissue.properties['type'][cell],tissue.properties['type'][neighbours],DELTA,game,game_constants) for cell,neighbours in zip(dead_cell_neighbours,neighbours_by_cell)])
+            mother = rand.choice(dead_cell_neighbours,p=fitnesses/sum(fitnesses))
+            tissue.add_daughter_cells(mother,rand)
+            properties['type'] = np.append(properties['type'],[properties['type'][mother]]*2)
+            tissue.remove(mother)
+            tissue.remove(dead_cell) #kill random cell
+        tissue.update(dt)
+        # update_progress(step/N_steps)
+        complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
+        yield tissue        
+
+def run_simulation_poisson_const_pop_size(N,timestep,timend,rand,DELTA,game,game_constants,save_areas=False):
     tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
     tissue.properties['type'] = np.zeros(N*N,dtype=int)
     tissue.age = np.zeros(N*N,dtype=float)
@@ -88,4 +110,11 @@ def run_simulation_poisqson_const_pop_size(N,timestep,timend,rand,DELTA,game,gam
     history = run(tissue, simulation_poisson_const_pop_size(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,game_constants),timend/dt,timestep/dt)
     return history
 
-
+def run_simulation_death_birth(N,timestep,timend,rand,DELTA,game,game_constants,save_areas=False):
+    tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
+    tissue.properties['type'] = np.zeros(N*N,dtype=int)
+    tissue.age = np.zeros(N*N,dtype=float)
+    tissue = run(tissue, simulation_poisson_const_pop_size(tissue,dt,10./dt,timestep/dt,rand,DELTA,game,game_constants,True),10./dt,timestep/dt)[-1]
+    tissue.properties['type'][rand.randint(N*N,size=1)]=1
+    history = run(tissue, simulation_death_birth(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,game_constants),timend/dt,timestep/dt)
+    return history

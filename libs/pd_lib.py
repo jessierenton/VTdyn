@@ -67,7 +67,7 @@ def simulation_poisson_const_pop_size(tissue,dt,N_steps,stepsize,rand,DELTA,game
         mesh.move_all(tissue.dr(dt))
         if rand.rand() < (1./T_D)*N*dt:
             fitnesses = recalculate_fitnesses(tissue.mesh.neighbours,properties['type'],DELTA,game,game_constants)
-            mother = rand.choice(N,p=fitnesses/sum(fitnesses))
+            mother = np.where(np.random.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]   
             tissue.add_daughter_cells(mother,rand)
             properties['type'] = np.append(properties['type'],[properties['type'][mother]]*2)
             tissue.remove(mother)

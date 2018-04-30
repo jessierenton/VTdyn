@@ -54,7 +54,7 @@ def get_region_for_infinite(region,vor,center,ptp_bound):
         else: region_vertices.append(far_point1); region_vertices.append(far_point2)
     return np.array(region_vertices)
 
-def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False):
+def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None):
     width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
     centres = tissue.mesh.centres 
     centres_3x3 = np.vstack([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]])
@@ -74,12 +74,13 @@ def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,
         ax.set_xlim(minx - 0.2 * w, maxx + 0.2 * w)
         ax.set_ylim(miny - 0.2 * h, maxy + 0.2 * h)
         ax.set_aspect(1)
+        ax.set_axis_off()
     ax.set_xticks([])
     ax.set_yticks([])
     
-    if key is None: ax.add_collection(PatchCollection([PolygonPatch(p,linewidth=2.5) for p in mp],match_original=True))
+    if key is None and colours is None: ax.add_collection(PatchCollection([PolygonPatch(p,linewidth=2.5) for p in mp],match_original=True))
     else:
-        colours = palette[tissue.properties[key]]
+        if colours is None: colours = palette[tissue.properties[key]]
         coll = PatchCollection([PolygonPatch(p,facecolor = c,linewidth=2.5) for p,c in zip(mp,colours)],match_original=True)
         ax.add_collection(coll)
     
@@ -100,7 +101,7 @@ def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,
         for i, coords in enumerate(tissue.mesh.centres):
             plt.text(coords[0],coords[1],str(ids[i]))
     if boundary: 
-        ax.add_patch(patches.Rectangle((-width/2,-height/2),width,height,fill=False))
+        ax.add_patch(patches.Rectangle((-width/2,-height/2),width,height,fill=False,linewidth=1.5))
 
     
     

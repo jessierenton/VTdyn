@@ -50,6 +50,12 @@ class Torus(Geometry):
     def Voronoi(self,centres):
         return Voronoi(centres)
     
+    def distance(self,r0,r1):
+        delta = np.abs(r0-r1)
+        delta[:,0] = np.min((delta[:,0],self.width-delta[:,0]),axis=0)
+        delta[:,1] = np.min((delta[:,1],self.height-delta[:,1]),axis=0)
+        return np.sqrt((delta ** 2).sum(axis=1))
+    
     def retriangulate(self,centres,N_mesh):
         width,height = self.width, self.height
         centres_3x3 = np.reshape([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]],(9*N_mesh,2))
@@ -121,12 +127,6 @@ class Mesh(object):
     def update(self):
         self.N_mesh = len(self.centres)
         self.neighbours, self.distances, self.unit_vecs, self.areas = self.retriangulate()
-    
-    def extreme_point(self):
-        return np.max(self.distances())
-    
-    def distances(self):
-        return np.array([np.sqrt(r[0]**2+r[1]**2) for r in self.centres])
         
     def move(self, i, dr):
         self.centres[i] = self.geometry.periodise(self.centres[i]+dr)
@@ -148,6 +148,9 @@ class Mesh(object):
 
     def delaunay(self,centres):
         return Delaunay(centres)
+        
+    def get_distances(self,i):
+        return self.geometry.distance(self.centres[i],self.centres)
     
     def retriangulate(self):
         N_mesh = self.N_mesh

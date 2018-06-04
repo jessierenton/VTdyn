@@ -9,12 +9,15 @@ import numpy as np
 import libs.pd_lib as lib
 import libs.data as data
 # import libs.plot as vplt
-from libs.pd_lib import run_simulation_death_birth,prisoners_dilemma_averaged,prisoners_dilemma_accumulated
+import libs.pd_lib as lib
 from functools import partial
 
+simulation = lib.run_simulation_death_birth_radius
+division_radius = 3.0
+
 game_str = sys.argv[1]
-if game_str == 'acc': game = prisoners_dilemma_accumulated
-elif game_str == 'av': game = prisoners_dilemma_averaged
+if game_str == 'acc': game = lib.prisoners_dilemma_accumulated
+elif game_str == 'av': game = lib.prisoners_dilemma_averaged
 else: raise ValueError('invalid game string')
 
 b_vals = np.array(sys.argv[4:],dtype=float)
@@ -22,7 +25,7 @@ b_vals = np.array(sys.argv[4:],dtype=float)
 c,DELTA = 1.0,0.025
 
 rand = np.random.RandomState()
-outdir = 'delta%.3f_pd_%s_death_birth'%(DELTA,game_str)
+outdir = 'delta%.3f_pd_%s_death_birth_radius/radius%.1f'%(DELTA,game_str,division_radius)
 
 l = 10
 timend = 10000.
@@ -38,7 +41,7 @@ if not os.path.exists(outdir): # if the outdir doesn't exist create it
      os.makedirs(outdir)
      
 info = """
-donation game poisson process fixed N
+%s
 
 T_D = 12.
 L0 = 1.0
@@ -55,14 +58,14 @@ timestep = %.0f
 N = %d
 
 c,DELTA = %.1f, %.3f
-""" %(timend,timestep,l*l,c,DELTA)
+""" %(simulation.__doc__,timend,timestep,l*l,c,DELTA)
 
 with open(outdir+'/info',"w",0) as infofile:
     infofile.write(info)
 
 def run_parallel(b,i):
     rand=np.random.RandomState()
-    history = lib.run_simulation_death_birth(l,timestep,timend,rand,DELTA,prisoners_dilemma_averaged,(b,c),save_areas=False)
+    history = simulation(l,timestep,timend,rand,DELTA,game,(b,c),division_radius,save_areas=False)
     if 0 not in history[-1].properties['type']:
         fix = 1  
         # data.save_N_mutant_type(history,outdir+'/fixed_b%.1f'%b,i)
@@ -76,7 +79,7 @@ def run_parallel(b,i):
 cpunum=mp.cpu_count()
 pool = Pool(processes=cpunum,maxtasksperchild=1000) # creating a pool with processors equal to the number of processors
 for b in b_vals:
-    fix_results = open(outdir+'/fix_b%.1f'%b,'a',0)
+    fix_results = open(outdir+'/fix%.1f_batches%dto%d'%(b,start_batch,end_batch),'w',0)
     for i in range(start_batch,end_batch):
         text = '\r running batch %d of %d'%(i+1,end_batch)
         sys.stdout.write(text)

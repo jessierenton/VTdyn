@@ -56,7 +56,92 @@ def get_fitness(cell_type,neighbour_types,DELTA,game,game_constants):
 def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_constants):
     return np.array([get_fitness(types[cell],types[neighbours],DELTA,game,game_constants) for cell,neighbours in enumerate(neighbours_by_cell)])
 
-def simulation_poisson_const_pop_size(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,initial=False):
+
+def simulation_initialise_tissue_with_cluster(tissue,dt,min_steps,rand,cluster_size,main_type):
+    step = 0.
+    N= len(tissue)
+    tissue.properties['ancestor']=np.arange(N,dtype=int)
+    max_cluster_size = 1
+    max_cluster_index = 0
+    while True:
+        properties = tissue.properties
+        mesh = tissue.mesh
+        step += 1
+        mesh.move_all(tissue.dr(dt))
+        if rand.rand() < (1./T_D)*N*dt:
+            mother = rand.randint(N)
+            tissue.add_daughter_cells(mother,rand)
+            properties['ancestor'] = np.append(properties['ancestor'],[properties['ancestor'][mother]]*2)
+            tissue.remove(mother)
+            tissue.remove(rand.randint(N)) #kill random cell
+        tissue.update(dt)
+        # update_progress(step/N_steps)
+        if step > min_steps:
+            if cluster_size == 1: 
+                tissue.properties['type'] = np.full(N,main_type,dtype=int)
+                tissue.properties['type'][rand.randint(N)] = 1-main_type
+                return tissue
+            cluster_index = np.where(np.bincount(properties['ancestor'])==cluster_size)[0]
+            if len(cluster_index)!=0:
+                tissue.properties['type'] = np.full(N,main_type,dtype=int)
+                tissue.properties['type'][np.where(tissue.properties.pop('ancestor')==rand.choice(cluster_index))[0]] = 1-main_type
+                return tissue
+
+def simulation_with_mutation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,DELTA,game,constants,initial=False):
+    mutation_rate = constants[0]
+    game_constants = constants[1:]
+    step = 0.
+    complete = False
+    while initial or not complete:
+        N= len(tissue)
+        properties = tissue.properties
+        mesh = tissue.mesh
+        step += 1
+        mesh.move_all(tissue.dr(dt))
+        if rand.rand() < (1./T_D)*N*dt:
+            fitnesses = recalculate_fitnesses(tissue.mesh.neighbours,properties['type'],DELTA,game,game_constants)
+            mother = np.where(np.random.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]   
+            tissue.add_daughter_cells(mother,rand)
+            r = rand.rand()
+            if r < mutation_rate**2: properties['type'] = np.append(properties['type'],rand.randint(0,2,2))
+            elif r < mutation_rate: properties['type'] = np.append(properties['type'],[properties['type'][mother],rand.randint(2)])
+            else: properties['type'] = np.append(properties['type'],[properties['type'][mother]]*2)
+            properties['ancestor'] = np.append(properties['ancestor'],[properties['ancestor'][mother]]*2)
+            tissue.remove(mother)
+            tissue.remove(rand.randint(N)) #kill random cell
+        tissue.update(dt)
+        update_progress(step/N_steps)
+        complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
+        yield tissue
+
+def simulation_with_mutation(tissue,dt,N_steps,stepsize,rand,DELTA,game,constants,initial=False):
+    mutation_rate = constants[0]
+    game_constants = constants[1:]
+    step = 0.
+    complete = False
+    while initial or not complete:
+        N= len(tissue)
+        properties = tissue.properties
+        mesh = tissue.mesh
+        step += 1
+        mesh.move_all(tissue.dr(dt))
+        if rand.rand() < (1./T_D)*N*dt:
+            fitnesses = recalculate_fitnesses(tissue.mesh.neighbours,properties['type'],DELTA,game,game_constants)
+            mother = np.where(np.random.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]   
+            tissue.add_daughter_cells(mother,rand)
+            r = rand.rand()
+            if r < mutation_rate**2: properties['type'] = np.append(properties['type'],rand.randint(0,2,2))
+            elif r < mutation_rate: properties['type'] = np.append(properties['type'],[properties['type'][mother],rand.randint(2)])
+            else: properties['type'] = np.append(properties['type'],[properties['type'][mother]]*2)
+            tissue.remove(mother)
+            tissue.remove(rand.randint(N)) #kill random cell
+        tissue.update(dt)
+        update_progress(step/N_steps)
+        complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
+        yield tissue
+
+
+def simulation_decoupled_update(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,initial=False):
     step = 0.
     complete = False
     while initial or not complete:
@@ -126,16 +211,35 @@ def simulation_death_birth_radius(tissue,dt,N_steps,stepsize,rand,DELTA,game,gam
         # update_progress(step/N_steps)
         complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
         yield tissue
-    
 
-def run_simulation_poisson_const_pop_size(N,timestep,timend,rand,DELTA,game,game_constants,save_areas=False):
+def initialise_tissue_ancestors(N,dt,timend,timestep,rand,DELTA,game,constants):                
+    tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
+    tissue.properties['type'] = np.zeros(N*N,dtype=int)
+    tissue.properties['ancestor'] = np.arange(N*N)
+    tissue.age = np.zeros(N*N,dtype=float)
+    tissue = run(tissue,simulation_with_mutation_ancestor_tracking(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,constants,True),timend/dt,timestep/dt)[-1]
+    return tissue
+    
+def run_simulation(simulation,N,timestep,timend,rand,DELTA,game,constants,til_fix=True,save_areas=False,tissue=None):
+    """prisoners dilemma with decoupled birth and death"""
+    if tissue is None:
+        tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
+        tissue.properties['type'] = np.zeros(N*N,dtype=int)
+        tissue.age = np.zeros(N*N,dtype=float)
+        tissue = run(tissue, simulation(tissue,dt,10./dt,timestep/dt,rand,DELTA,game,constants,True),10./dt,timestep/dt)[-1]
+        tissue.properties['type'][rand.randint(N*N,size=1)]=1
+    history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,constants,~til_fix),timend/dt,timestep/dt)
+    return history
+
+
+def run_simulation_decoupled_update(N,timestep,timend,rand,DELTA,game,game_constants,save_areas=False):
     """prisoners dilemma with decoupled birth and death"""
     tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
     tissue.properties['type'] = np.zeros(N*N,dtype=int)
     tissue.age = np.zeros(N*N,dtype=float)
-    tissue = run(tissue, simulation_poisson_const_pop_size(tissue,dt,10./dt,timestep/dt,rand,DELTA,game,game_constants,True),10./dt,timestep/dt)[-1]
+    tissue = run(tissue, simulation_decoupled_update(tissue,dt,10./dt,timestep/dt,rand,DELTA,game,game_constants,True),10./dt,timestep/dt)[-1]
     tissue.properties['type'][rand.randint(N*N,size=1)]=1
-    history = run(tissue, simulation_poisson_const_pop_size(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,game_constants),timend/dt,timestep/dt)
+    history = run(tissue, simulation_decoupled_update(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,game_constants),timend/dt,timestep/dt)
     return history
 
 def run_simulation_death_birth(N,timestep,timend,rand,DELTA,game,game_constants,save_areas=False):

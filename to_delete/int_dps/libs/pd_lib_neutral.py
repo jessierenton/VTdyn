@@ -3,26 +3,52 @@ import sys
 import numpy as np
 import itertools
 import structure
-from structure.global_constants import T_D,dt
+from structure.global_constants import *
 from structure.cell import Tissue, BasicSpringForceNoGrowth, MutantSpringForce
 import structure.initialisation as init
 
+
+def update_progress(progress):
+    barLength = 20 # Modify this to change the length of the progress bar
+    status = ""
+    if isinstance(progress, int):
+        progress = float(progress)
+    if not isinstance(progress, float):
+        progress = 0
+        status = "error: progress var must be float\r\n"
+    if progress < 0:
+        progress = 0
+        status = "Halt...\r\n"
+    if progress >= 1:
+        progress = 1
+        status = "Done...\r\n"
+    block = int(round(barLength*progress))
+    text = "\rPercent: [{0}] {1:.4f}% {2}".format( "#"*block + "-"*(barLength-block), progress*100, status)
+    sys.stdout.write(text)
+    sys.stdout.flush()
+
+
+def simulation_no_division(tissue,dt,N_steps,rand):
+    step = 0.
+    while True:
+        N= len(tissue)
+        mesh = tissue.mesh
+        step += 1
+        mesh.move_all(tissue.dr(dt))
+        tissue.update(dt)
+        update_progress(step/N_steps)  
+        yield tissue
         
 def run(tissue_original,simulation,N_step,skip):
-    """run a given simulation for N_step iterations
-    returns list of tissue objects at intervals given by skip"""
     return [tissue_original.copy()]+[tissue.copy() for tissue in itertools.islice(simulation,skip-1,N_step,skip)]
 
 def run_generator(simulation,N_step,skip):
-    """generator for running a given simulation for N_step iterations
-    returns generator for of tissue objects at intervals given by skip"""
     return itertools.islice(simulation,0,N_step,skip)
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#------------------------------------------ SIMULATION ROUTINES ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------POISSON-CONSTANT-POP-SIZE-AND-FITNESS------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def simulation_with_mutation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,mutation_rate,initial=False):
-    """simulation loop for neutral process with mutation"""
     step = 0.
     complete = False
     while initial or not complete:
@@ -42,12 +68,11 @@ def simulation_with_mutation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,m
             tissue.remove(mother)
             tissue.remove(rand.randint(N)) #kill random cell
         tissue.update(dt)
-        complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0
+        update_progress(step/N_steps)
+        complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
         yield tissue
 
 def simulation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand):
-    """simulation loop for neutral process tracking ancestor ids"""
-    complete=False
     step = 0.
     while not complete:
         N= len(tissue)
@@ -61,12 +86,12 @@ def simulation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand):
             tissue.remove(mother)
             tissue.remove(rand.randint(N)) #kill random cell
         tissue.update(dt)
+        update_progress(step/N_steps)
         complete = (np.all(tissue.properties['ancestor']==tissue.properties['ancestor'][0]) and step%stepsize==0)
         step += 1 
         yield tissue
 
 def simulation_neutral_with_mutation(tissue,dt,N_steps,stepsize,rand,mutation_rate,initial=False):
-    """simulation loop for neutral process with mutation"""
     step = 0.
     complete = False
     while initial or not complete:
@@ -85,25 +110,20 @@ def simulation_neutral_with_mutation(tissue,dt,N_steps,stepsize,rand,mutation_ra
             tissue.remove(mother)
             tissue.remove(rand.randint(N)) #kill random cell
         tissue.update(dt)
-        complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0
+        update_progress(step/N_steps)
+        complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
         yield tissue
 
-def initialise_tissue_ancestors(N,dt,timend,timestep,rand,mutation_rate=None):  
-    """initialise tissue and run simulation until timend returning final state"""              
+def initialise_tissue_ancestors(N,dt,timend,timestep,rand,mutation_rate=None):                
     tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
     tissue.properties['ancestor'] = np.arange(N*N)
     tissue.age = np.zeros(N*N,dtype=float)
     if mutation_rate is None: tissue = run(tissue,simulation_ancestor_tracking(tissue,dt,timend/dt,timestep/dt,rand),timend/dt,timestep/dt)[-1]
     else: tissue = run(tissue,simulation_with_mutation_ancestor_tracking(tissue,dt,timend/dt,timestep/dt,rand,mutation_rate),timend/dt,timestep/dt)[-1]
-    tissue.properties['ancestor']=np.arange(N*N)
     return tissue
 
 def run_simulation(simulation,N,timestep,timend,rand,mutation_rate,til_fix=True,save_areas=False,tissue=None):
-    """initialise tissue with NxN cells and run given simulation with given game and constants.
-            starts with single cooperator
-            ends at time=timend OR if til_fix=True when population all cooperators (type=1) or defectors (2)
-        returns history: list of tissue objects at time intervals given by timestep
-            """
+    """prisoners dilemma with decoupled birth and death"""
     if tissue is None:
         tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
         tissue.properties['type'] = np.zeros(N*N,dtype=int)

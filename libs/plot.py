@@ -4,19 +4,32 @@ from matplotlib.collections import PolyCollection, PatchCollection
 import matplotlib.patches as patches
 import seaborn as sns
 from shapely.ops import polygonize
-from shapely.geometry import LineString, MultiPolygon, Polygon, MultiPoint, Point
-from scipy.spatial import Voronoi
+from shapely.geometry import LineString, MultiPolygon, Polygon, MultiPoint, Point, LinearRing
+from scipy.spatial import Voronoi, Delaunay
 from descartes.patch import PolygonPatch
 import os
 
 current_palette = sns.color_palette()
 
 
-def plot_tri(tissue,ax=None,time = None,label=False,palette=current_palette):
-    fig = plt.figure() 
-    centres = tissue.mesh.centres     
-    plt.triplot(tissue.mesh.centres[:,0], tissue.mesh.centres[:,1], tissue.mesh.tri.copy(),color=palette[3])
-    plt.plot(centres[:,0], centres[:,1], 'o',color = palette[1])
+def plot_tri_torus(tissue,ax=None,time = None,label=False,palette=current_palette):
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+    width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
+    centres = tissue.mesh.centres
+    centres_3x3 = np.vstack([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]])
+    # N = tissue.mesh.N_mesh
+#     mask = np.full(9*N,False,dtype=bool)
+#     mask[4*N:5*N]=True
+    tri = Delaunay(centres_3x3).simplices
+#     triangles = [LinearRing([centres_3x3[t][0],centres_3x3[t][1],centres_3x3[t][2]]) for t in tri]
+#     box = Polygon([[-width/2,-height/2],[-width/2,height/2],[width/2,height/2],[width/2,-height/2]])
+#     mp = [t.intersection(box) for t in triangles]
+#     coll = PatchCollection([PolygonPatch(t) for t in mp],match_original=True)
+#     ax.add_collection(coll)
+    plt.triplot(centres_3x3[:,0], centres_3x3[:,1], tri.copy(),color=palette[3])
+    plt.plot(centres_3x3[:,0], centres_3x3[:,1], 'o',color = 'black')
     if label:
         for i, coords in enumerate(tissue.mesh.centres):
             plt.text(coords[0],coords[1],str(i))
@@ -79,9 +92,12 @@ def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,
     ax.set_yticks([])
     
     if key is None and colours is None: ax.add_collection(PatchCollection([PolygonPatch(p,linewidth=2.5) for p in mp],match_original=True))
-    else:
+    elif key is not None:
         if colours is None: colours = palette[tissue.properties[key]]
         coll = PatchCollection([PolygonPatch(p,facecolor = c,linewidth=2.5) for p,c in zip(mp,colours)],match_original=True)
+        ax.add_collection(coll)
+    elif colours is not None:
+        coll = PatchCollection([PolygonPatch(p,facecolor = colours,linewidth=2.5) for p in mp],match_original=True)
         ax.add_collection(coll)
     
     if show_centres: 
@@ -96,10 +112,9 @@ def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,
     if areas:
         for area, coords in zip(tissue.mesh.areas,tissue.mesh.centres):
             plt.text(coords[0],coords[1],'%.2f'%area)
-    if key_label is not None:
-        ids = tissue.by_mesh(key_label)
-        for i, coords in enumerate(tissue.mesh.centres):
-            plt.text(coords[0],coords[1],str(ids[i]))
+    if key_label is True:
+        for id, coords in zip(tissue.properties[key],tissue.mesh.centres):
+            plt.text(coords[0],coords[1],str(id))
     if boundary: 
         ax.add_patch(patches.Rectangle((-width/2,-height/2),width,height,fill=False,linewidth=1.5))
 

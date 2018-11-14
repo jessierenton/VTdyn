@@ -5,7 +5,6 @@ T_G1, T_other = 2,10
 V_G1 = 1 #variance in G1-time
 min_G1 = 0.01 #min G1-time
 # T_D = 17.25663
-
 T_D = 12.0
 L0 = 1.0
 EPS = 0.05

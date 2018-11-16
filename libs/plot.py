@@ -11,23 +11,18 @@ import os
 
 current_palette = sns.color_palette()
 
+#functions for plotting and animating tissue objects/histories
+
 
 def plot_tri_torus(tissue,ax=None,time = None,label=False,palette=current_palette):
+    """plot Delaunay triangulation of a tissue object (i.e. cell centres and neighbour connections) with torus geometry"""
     if ax is None:
         fig = plt.figure()
         ax = fig.add_subplot(111)
     width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
     centres = tissue.mesh.centres
     centres_3x3 = np.vstack([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]])
-    # N = tissue.mesh.N_mesh
-#     mask = np.full(9*N,False,dtype=bool)
-#     mask[4*N:5*N]=True
-    tri = Delaunay(centres_3x3).simplices
-#     triangles = [LinearRing([centres_3x3[t][0],centres_3x3[t][1],centres_3x3[t][2]]) for t in tri]
-#     box = Polygon([[-width/2,-height/2],[-width/2,height/2],[width/2,height/2],[width/2,-height/2]])
-#     mp = [t.intersection(box) for t in triangles]
-#     coll = PatchCollection([PolygonPatch(t) for t in mp],match_original=True)
-#     ax.add_collection(coll)
+    tri = Delaunay(centres_3x3).simplices  
     plt.triplot(centres_3x3[:,0], centres_3x3[:,1], tri.copy(),color=palette[3])
     plt.plot(centres_3x3[:,0], centres_3x3[:,1], 'o',color = 'black')
     if label:
@@ -68,6 +63,20 @@ def get_region_for_infinite(region,vor,center,ptp_bound):
     return np.array(region_vertices)
 
 def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None):
+    """plot tissue object with torus geometry
+    parameters
+    ---------------
+    tissue: to plot
+    palette: array of colors
+    key: (str) color code cells by key. must match a tissue.properties key, e.g. type, ancestors
+    key_label: (bool) plot key vals if True
+    ax: matplotlib axes
+    show_centres: (bool) plot cell centres if True
+    cell_ids/mesh_ids: (bool) label with cell/mesh ids if True
+    areas: (bool) label with cell areas if True
+    boundary: (bool) if True plot square boundary over which tissue is periodic
+    colours: (array) provide colours for specific key values (if key not None) OR colour of each cell 
+    """
     width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
     centres = tissue.mesh.centres 
     centres_3x3 = np.vstack([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]])

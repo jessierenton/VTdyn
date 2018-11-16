@@ -8,7 +8,7 @@ Code for Voronoi Tessellation model
 	
 	- for death-birth update run multirun_constant_N.py with same command 		line args
 
-  Output saved in delta0.025_pd_av/fixX (X=b) for decoupled update
-  				  delta0.025_pd_av_db/fixX for death-birth update
+  Output saved in VTpd_av_decoupled/fixX (X=b) for decoupled update
+ 		   VTpd_av_db/fixX for death-birth update
 				  
   Data in form #fixed #lost #incomplete (sum=1000)

@@ -5,7 +5,6 @@ from functools import partial
 
 import os
 import numpy as np
-import libs.pd_lib as lib
 import libs.data as data
 from libs.pd_lib import run_simulation,simulation_decoupled_update,prisoners_dilemma_averaged,prisoners_dilemma_accumulated
 from functools import partial
@@ -32,16 +31,18 @@ timestep = 12.0 #state saved every 12 hours
 
 rand = np.random.RandomState()
 
-outdir = 'delta%.3f_pd_%s'%(DELTA,game_str)
+outdir = 'VTpd_%s_decoupled'%(game_str)
 if not os.path.exists(outdir): # if the outdir doesn't exist create it
      os.makedirs(outdir)
+with open(outdir+'/info','w') as f:
+    f.write('N=%d, c=%.1f, delta=%.3f'%(l*l,c,DELTA))
 
 def run_parallel(b,i):
     """run a single simulation using simulation_decoupled_update routine indexed by i returning 1 if resulted in mutant fixation and 0 if resident fixation.
     If no fixation returns -1 and saves number of mutants at each timestep to file
     """
     rand=np.random.RandomState()
-    history = lib.run_simulation(simulation_decoupled_update,l,timestep,timend,rand,DELTA,prisoners_dilemma_averaged,(b,c),save_areas=False)
+    history = run_simulation(simulation_decoupled_update,l,timestep,timend,rand,DELTA,prisoners_dilemma_averaged,(b,c),save_areas=False)
     if 0 not in history[-1].properties['type']:
         fix = 1  
     elif 1 not in history[-1].properties['type']:
@@ -62,7 +63,7 @@ for b in b_vals:
         text = '\r running batch %d of %d'%(i+1,end_batch)
         sys.stdout.write(text)
         sys.stdout.flush()
-        fixation = np.array([f for f in pool.imap(partial(run_parallel,b),range(i*runs_per_batch,(i+1)*runs_per_batch))])  # mapping of all the calls necessary into the calling function
+        fixation = np.array([f for f in pool.imap(partial(run_parallel,b),range(i*runs_per_batch,(i+1)*runs_per_batch))])  # mapping of all the calls necessary into the calling function (run parallel)
         fixed = len(np.where(fixation==1)[0])
         lost = len(np.where(fixation==0)[0])
         incomplete = len(np.where(fixation==-1)[0])

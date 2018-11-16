@@ -36,7 +36,7 @@ def run_sim(i):
     tissue.properties['ancestor']=np.arange(l*l)
     if init_timend is not None: tissue = lib.run(tissue,lib.simulation_ancestor_tracking(tissue,dt,init_timend/dt,init_timend/dt,rand),init_timend/dt,init_timend/dt)[-1]
     data = [calc_interactions(tissue,mutant_index,n)
-                for tissue in lib.run_generator(lib.simulation_ancestor_tracking(tissue,dt,timend/dt,timestep/dt,rand),timend/dt,timestep/dt)
+                for tissue in lib.run_generator(lib.simulation_ancestor_tracking(tissue,dt,timend/dt,timestep/dt,rand,til_fix=True),timend/dt,timestep/dt)
                 for mutant_index,n in enumerate(np.bincount(tissue.properties['ancestor'])) if n>=n_min]                
     np.savetxt('%s/data_%d'%(outdir,i),data,fmt=('%4d','%4d','%4d','%4.6f','%4.6f'))
     return None

@@ -4,7 +4,7 @@ import numpy as np
 import itertools
 import structure
 from structure.global_constants import T_D,dt
-from structure.cell import Tissue, BasicSpringForceNoGrowth, MutantSpringForce
+from structure.cell import Tissue, BasicSpringForceNoGrowth
 import structure.initialisation as init
 
         

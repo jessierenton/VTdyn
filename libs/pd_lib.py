@@ -6,6 +6,9 @@ from structure.global_constants import T_D,dt
 from structure.cell import Tissue, BasicSpringForceNoGrowth
 import structure.initialisation as init
 
+def print_progress(step,N_steps):
+    sys.stdout.write("\r %.2f %%"%(step*100/N_steps))
+    sys.stdout.flush() 
  
 def run(tissue_original,simulation,N_step,skip):
     """run a given simulation for N_step iterations
@@ -85,11 +88,11 @@ def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_constants):
 #         yield tissue
 
 
-def simulation_decoupled_update(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,initial=False):
+def simulation_decoupled_update(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,til_fix=False):
     """simulation loop for decoupled update rule"""
     step = 0.
     complete = False
-    while initial or not complete:
+    while not til_fix or not complete:
         N= len(tissue)
         properties = tissue.properties
         mesh = tissue.mesh
@@ -103,14 +106,15 @@ def simulation_decoupled_update(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_
             tissue.remove(mother)
             tissue.remove(rand.randint(N)) #kill random cell
         tissue.update(dt)
+        print_progress(step,N_steps)
         complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
         yield tissue
 
-def simulation_death_birth(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,initial=False):
+def simulation_death_birth(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,til_fix=False):
     """simulation loop for death-birth update rule"""
     step = 0.
     complete = False
-    while initial or not complete:
+    while not til_fix or not complete:
         N= len(tissue)
         properties = tissue.properties
         mesh = tissue.mesh
@@ -178,38 +182,7 @@ def run_simulation(simulation,N,timestep,timend,rand,DELTA,game,constants,til_fi
         tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
     tissue.properties['type'] = np.zeros(N*N,dtype=int)
     tissue.age = np.zeros(N*N,dtype=float)
-    tissue = run(tissue, simulation(tissue,dt,10./dt,timestep/dt,rand,DELTA,game,constants,True),10./dt,timestep/dt)[-1]
+    tissue = run(tissue, simulation(tissue,dt,10./dt,timestep/dt,rand,DELTA,game,constants,til_fix=False),10./dt,timestep/dt)[-1]
     tissue.properties['type'][rand.randint(N*N,size=1)]=1
-    history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,constants,~til_fix),timend/dt,timestep/dt)
-    return history
-
-
-def run_simulation_decoupled_update(N,timestep,timend,rand,DELTA,game,game_constants,save_areas=False):
-    """initialise tissue and run simulation. prisoners dilemma with decoupled birth and death"""
-    tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
-    tissue.properties['type'] = np.zeros(N*N,dtype=int)
-    tissue.age = np.zeros(N*N,dtype=float)
-    tissue = run(tissue, simulation_decoupled_update(tissue,dt,10./dt,timestep/dt,rand,DELTA,game,game_constants,True),10./dt,timestep/dt)[-1]
-    tissue.properties['type'][rand.randint(N*N,size=1)]=1
-    history = run(tissue, simulation_decoupled_update(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,game_constants),timend/dt,timestep/dt)
-    return history
-
-def run_simulation_death_birth(N,timestep,timend,rand,DELTA,game,game_constants,save_areas=False):
-    """initialise tissue and run simulation. prisoners dilemma with death-birth update rule"""
-    tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
-    tissue.properties['type'] = np.zeros(N*N,dtype=int)
-    tissue.age = np.zeros(N*N,dtype=float)
-    tissue = run(tissue, simulation_poisson_death_birth(tissue,dt,10./dt,timestep/dt,rand,DELTA,game,game_constants,True),10./dt,timestep/dt)[-1]
-    tissue.properties['type'][rand.randint(N*N,size=1)]=1
-    history = run(tissue, simulation_death_birth(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,game_constants),timend/dt,timestep/dt)
-    return history
-    
-def run_simulation_death_birth_radius(N,timestep,timend,rand,DELTA,game,game_constants,division_radius,save_areas=False):
-    """initialise tissue and run simulation. prisoners dilemma with birth events restricted to a given radius of death"""
-    tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
-    tissue.properties['type'] = np.zeros(N*N,dtype=int)
-    tissue.age = np.zeros(N*N,dtype=float)
-    tissue = run(tissue, simulation_death_birth_radius(tissue,dt,10./dt,timestep/dt,rand,DELTA,game,game_constants,division_radius,True),10./dt,timestep/dt)[-1]
-    tissue.properties['type'][rand.randint(N*N,size=1)]=1
-    history = run(tissue,simulation_death_birth_radius(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,game_constants,division_radius),timend/dt,timestep/dt)
+    history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,constants,til_fix),timend/dt,timestep/dt)
     return history

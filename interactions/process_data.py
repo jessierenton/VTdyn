@@ -1,7 +1,13 @@
 import numpy as np
 import os
 
-datdir = 'raw_data2'
+"""sorts interaction data in datdir directory with format 'n I_CC I_CD W_CC W_CD' into
+ints_CC/ints_CD/wints_CC/wints_CD directories with individual files n_1, n_2, etc
+containing data on number of interactions (or degree weighted interactions) for each n
+where n is number of cooperators
+"""
+
+datdir = 'raw_data'
 
 def load_all_data(datdir):
     data_files = [datdir+'/'+f for f in os.listdir(datdir) if not f.startswith('.')]
@@ -35,9 +41,8 @@ def save_sorted(outdirs,data_by_n):
                 np.savetxt(outdir+'/n_%d'%n,data[i],fmt='%.6f')
         
 
-def main():    
-    data_by_n = sort_all_data(load_all_data(datdir))
-    outdirs = make_dirs(('ints_CC','ints_CD','wints_CC','wints_CD'))
-    save_sorted(outdirs,data_by_n)
+   
+data_by_n = sort_all_data(load_all_data(datdir))
+outdirs = make_dirs(('ints_CC','ints_CD','wints_CC','wints_CD'))
+save_sorted(outdirs,data_by_n)
 
-main()

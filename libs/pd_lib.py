@@ -106,7 +106,6 @@ def simulation_decoupled_update(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_
             tissue.remove(mother)
             tissue.remove(rand.randint(N)) #kill random cell
         tissue.update(dt)
-        print_progress(step,N_steps)
         complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
         yield tissue
 

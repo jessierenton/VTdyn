@@ -28,4 +28,4 @@ def save_fix_probs(DELTA_vals,b_vals,fname):
 
 if __name__ == '__main__':   
     b_vals = np.arange(1.5,8.5,0.5)
-    save_fix_probs(DELTA,b_vals,'vt_fix_probs')
+    save_fix_probs(DELTA,b_vals,'VTpd_av_decoupled_theory')

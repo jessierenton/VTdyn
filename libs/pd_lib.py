@@ -93,6 +93,7 @@ def simulation_decoupled_update(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_
     step = 0.
     complete = False
     while not til_fix or not complete:
+        print_progress(step,N_steps)
         N= len(tissue)
         properties = tissue.properties
         mesh = tissue.mesh
@@ -171,7 +172,7 @@ def simulation_no_division(tissue,dt,N_steps,rand):
 #         yield tissue
 
     
-def run_simulation(simulation,N,timestep,timend,rand,DELTA,game,constants,til_fix=True,save_areas=False,tissue=None):
+def run_simulation(simulation,N,timestep,timend,rand,DELTA,game,constants,til_fix=True,save_areas=False,tissue=None,mutant_num=1):
     """initialise tissue with NxN cells and run given simulation with given game and constants.
             starts with single cooperator
             ends at time=timend OR if til_fix=True when population all cooperators (type=1) or defectors (2)
@@ -182,6 +183,6 @@ def run_simulation(simulation,N,timestep,timend,rand,DELTA,game,constants,til_fi
     tissue.properties['type'] = np.zeros(N*N,dtype=int)
     tissue.age = np.zeros(N*N,dtype=float)
     tissue = run(tissue, simulation(tissue,dt,10./dt,timestep/dt,rand,DELTA,game,constants,til_fix=False),10./dt,timestep/dt)[-1]
-    tissue.properties['type'][rand.randint(N*N,size=1)]=1
+    tissue.properties['type'][rand.choice(N*N,size=mutant_num,replace=False)]=1
     history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,constants,til_fix),timend/dt,timestep/dt)
     return history

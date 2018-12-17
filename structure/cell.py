@@ -28,7 +28,6 @@ class Tissue(object):
         """
         self.mesh = mesh
         self.Force = force
-        N = len(mesh)
         self.cell_ids = cell_ids
         self.next_id = next_id
         self.age = age
@@ -37,6 +36,14 @@ class Tissue(object):
         
     def __len__(self):
         return len(self.mesh)
+    
+    def reset(self):
+        N = len(self)
+        self.cell_ids = np.arange(N,dtype=int)
+        self.age = np.zeros(N,dtype=float)
+        self.next_id = N
+        self.mother = -np.ones(N,dtype=int)
+        
     
     def copy(self):
         """create a copy of Tissue"""

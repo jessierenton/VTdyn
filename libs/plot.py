@@ -16,10 +16,16 @@ current_palette = sns.color_palette()
 
 def plot_tri_torus(tissue,ax=None,time = None,label=False,palette=current_palette):
     """plot Delaunay triangulation of a tissue object (i.e. cell centres and neighbour connections) with torus geometry"""
-    if ax is None:
+    width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
+    if ax is None: 
         fig = plt.figure()
         ax = fig.add_subplot(111)
-    width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
+        minx, miny, maxx, maxy = -width/2,-height/2,width/2,height/2
+        w, h = maxx - minx, maxy - miny
+        ax.set_xlim(minx - 0.2 * w, maxx + 0.2 * w)
+        ax.set_ylim(miny - 0.2 * h, maxy + 0.2 * h)
+        ax.set_aspect(1)
+        ax.set_axis_off()
     centres = tissue.mesh.centres
     centres_3x3 = np.vstack([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]])
     tri = Delaunay(centres_3x3).simplices  
@@ -163,7 +169,7 @@ def save_mpg_torus(history, name, index=None,key = None, delete_images=True):
 
 
 
-def animate_torus(history, key = None):
+def animate_torus(history, key = None, heatmap=None):
     """view animation of tissue history with torus geometry
     args: 
     --------------- 
@@ -196,6 +202,7 @@ def animate_torus(history, key = None):
             except TypeError: pass
             torus_plot(tissue,palette,key,ax=ax)
             plt.pause(0.001)
+    
     else:
         for tissue in history:
             try:

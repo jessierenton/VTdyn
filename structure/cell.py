@@ -51,7 +51,7 @@ class Tissue(object):
             
     def update(self,dt):
         self.mesh.update()
-        self.age += dt
+        self.age += dt      
     
     def remove(self,idx_list):
         """remove a cell from tissue"""

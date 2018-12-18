@@ -1,7 +1,29 @@
 import os
 import numpy as np
+import functools
 
 #library of functions for saving data from a history object (list of tissues)
+
+def memoize(func):
+    cache =  dict()
+
+    def memoized_func(*args):
+        if args in cache:
+            return cache[args]
+        result = func(*args)
+        cache[args] = result
+        return result
+
+    return memoized_func
+
+def counter(func):
+    def wrapper(*args,**kwargs):
+        wrapper.count += 1
+        result = func(*args,**kwargs)
+        print wrapper.count
+        return result
+    wrapper.count = 0
+    return wrapper
 
 def save_mean_area(history,outdir,index=0):
     """saves mean area of cells in each tissue"""
@@ -58,24 +80,37 @@ def save_N_mutant_type(history,outdir,index=0):
     wfilename = '%s/%s_%d'%(outdir,'N_mutant',index)  
     np.savetxt(wfilename,[sum(tissue.properties['type']) for tissue in history],fmt=('%d'))
 
-def get_cell_history(history,cell_id):
+@memoize
+def get_local_density(mesh):
+    return mesh.local_density()
+
+def get_cell_history(history,cell_id,area=False,density=False):
     """generate a history for a given cell id with area at each timestep, age at each timestep and 
     fate (reproduction=1 or death=0)"""
-    cell_history = {'area':[],'age':[],'fate':None}
+    cell_history = {'age':[],'fate':None,'mother':None}
+    if area: cell_history['area']=[]
+    if density: cell_history['density']=[]
     for tissue in history:
-        if cell_id not in tissue.cell_ids and len(cell_history['area']) > 0: 
-            if cell_id in tissue.mother: cell_history['fate'] = 1
-            else: cell_history['fate'] = 0
-            break
+        if cell_id not in tissue.cell_ids:
+            if cell_id in tissue.mother: 
+                cell_history['fate'] = 1
+                break
+            elif len(cell_history['age']) > 0: 
+                cell_history['fate'] = 0
+                break
         elif cell_id in tissue.cell_ids:
+            if cell_history['mother'] is None:
+                cell_history['mother'] = tissue.mother[np.where(tissue.cell_ids==cell_id)[0][0]]
             mesh_id = np.where(tissue.cell_ids == cell_id)[0][0]
-            cell_history['area'].append(tissue.mesh.areas[mesh_id])
+            if area: cell_history['area'].append(tissue.mesh.areas[mesh_id])
             cell_history['age'].append(tissue.age[mesh_id])
+            if density: 
+                cell_history['density'].append(get_local_density(tissue.mesh)[mesh_id]) 
     return cell_history
 
-def get_cell_histories(history,start=0):
+def get_cell_histories(history,start=0,area=False,density=False):
     """generate history for all cells (see above get_cell_history)"""
-    return [get_cell_history(history[start:],i) for i in range(max(history[-1].cell_ids)) if len(get_cell_history(history[start:],i)['age'])>0]
+    return [ch for ch in (get_cell_history(history[start:],i,area,density) for i in range(max(history[-1].cell_ids)+1))]
 
 def save_age_of_death(history,outdir,index=0):
     """save cell lifetimes for each cell in history"""

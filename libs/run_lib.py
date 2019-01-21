@@ -7,25 +7,9 @@ from structure.cell import Tissue, BasicSpringForceNoGrowth, MutantSpringForce
 import structure.initialisation as init
 
 
-def update_progress(progress):
-    barLength = 20 # Modify this to change the length of the progress bar
-    status = ""
-    if isinstance(progress, int):
-        progress = float(progress)
-    if not isinstance(progress, float):
-        progress = 0
-        status = "error: progress var must be float\r\n"
-    if progress < 0:
-        progress = 0
-        status = "Halt...\r\n"
-    if progress >= 1:
-        progress = 1
-        status = "Done...\r\n"
-    block = int(round(barLength*progress))
-    text = "\rPercent: [{0}] {1:.4f}% {2}".format( "#"*block + "-"*(barLength-block), progress*100, status)
-    sys.stdout.write(text)
-    sys.stdout.flush()
-
+def print_progress(step,N_steps):
+    sys.stdout.write("\r %.2f %%"%(step*100/N_steps))
+    sys.stdout.flush() 
 
 def simulation_no_division(tissue,dt,N_steps,rand):
     step = 0.
@@ -35,7 +19,7 @@ def simulation_no_division(tissue,dt,N_steps,rand):
         step += 1
         mesh.move_all(tissue.dr(dt))
         tissue.update(dt)
-        update_progress(step/N_steps)  
+        print_progress(step,N_steps)  
         yield tissue
         
 def run(tissue_original,simulation,N_step,skip):
@@ -66,7 +50,7 @@ def simulation_poisson(tissue,dt,N_steps,rand):
         tissue.remove(ready)
         tissue.remove(np.where(properties['age_of_apoptosis']<=tissue.age)[0])
         tissue.update(dt)
-        update_progress(step/N_steps)  
+        print_progress(step,N_steps)  
         yield tissue
         
 
@@ -102,7 +86,7 @@ def simulation_age_dependent(tissue,dt,N_steps,rand):
         tissue.remove(ready)
         tissue.remove(np.where(properties['age_of_apoptosis']<=tissue.age)[0])
         tissue.update(dt)
-        update_progress(step/N_steps)  
+        print_progress(step,N_steps)  
         yield tissue
         
 
@@ -134,7 +118,7 @@ def simulation_size_dependent(tissue,dt,N_steps,stepsize,rand):
         if rand.rand() < (1./T_D)*N*dt:
             tissue.remove(rand.randint(N))
         tissue.update(dt)
-        update_progress(step/N_steps)
+        print_progress(step,N_steps)
         yield tissue
 
 def run_simulation_size_dependent(N,timestep,timend,rand,T_D_new=None):
@@ -163,7 +147,7 @@ def simulation_size_dependent_without_mutants(tissue,dt,N_steps,stepsize,rand):
         if rand.rand() < (1./T_D)*N*dt:
             tissue.remove(rand.randint(N))
         tissue.update(dt)
-        # update_progress(step/N_steps)
+        # print_progress(step,N_steps)
         yield tissue
         
 def simulation_size_dependent_with_mutants(tissue,dt,N_steps,stepsize,rand):
@@ -182,7 +166,7 @@ def simulation_size_dependent_with_mutants(tissue,dt,N_steps,stepsize,rand):
         if rand.rand() < (1./T_D)*N*dt:
             tissue.remove(rand.randint(N))
         tissue.update(dt)
-        # update_progress(step/N_steps)
+        # print_progress(step,N_steps)
         yield tissue
 
 def run_simulation_size_dependent_with_mutants(alpha,N,timestep,timend,rand):

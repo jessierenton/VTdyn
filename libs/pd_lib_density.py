@@ -41,11 +41,14 @@ def get_fitness(cell_type,neighbour_types,DELTA,game,game_constants):
 def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_constants):
     return 1+DELTA*np.array([game(types[cell],types[neighbours],*game_constants) for cell,neighbours in enumerate(neighbours_by_cell)])
 
-def simulation_pd_density_dep(tissue,dt,N_steps,stepsize,rand,DELTA,OMEGA,game,game_constants,til_fix=False):
+def simulation_pd_density_dep(tissue,dt,N_steps,stepsize,rand,params,DELTA,game,game_constants,til_fix=False):
+    OMEGA = params['OMEGA']
+    try: dd_order = params['dd_order']
+    except KeyError: dd_order = 1 
     step = 0.
     complete = False
     while not til_fix or not complete:
-        # print_progress(step,N_steps)
+        print_progress(step,N_steps)
         N= len(tissue)
         properties = tissue.properties
         mesh = tissue.mesh
@@ -55,7 +58,7 @@ def simulation_pd_density_dep(tissue,dt,N_steps,stepsize,rand,DELTA,OMEGA,game,g
             fitnesses = recalculate_fitnesses(mesh.neighbours,properties['type'],DELTA,game,game_constants)
             mother = np.where(np.random.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]   
             densities = mesh.local_density()
-            prob_dying = 1 - OMEGA + OMEGA*densities
+            prob_dying = 1 - OMEGA + OMEGA*densities**dd_order
             prob_dying[mother]=0
             prob_dying = prob_dying/sum(prob_dying)
             dead = np.where(np.random.multinomial(1,prob_dying)==1)[0][0]
@@ -66,7 +69,8 @@ def simulation_pd_density_dep(tissue,dt,N_steps,stepsize,rand,DELTA,OMEGA,game,g
         complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
         yield tissue
 
-def simulation_pd_density_dep_data(tissue,dt,N_steps,stepsize,rand,DELTA,OMEGA,game,game_constants,til_fix=False):
+def simulation_pd_density_dep_data(tissue,dt,N_steps,stepsize,rand,params,DELTA,game,game_constants,til_fix=False):
+    OMEGA = params['OMEGA']
     step = 0.
     complete = False
     with open('dd/event_data','a') as f:

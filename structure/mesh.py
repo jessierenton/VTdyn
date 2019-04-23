@@ -88,6 +88,12 @@ class Torus(Geometry):
         delta[:,1] = np.min((delta[:,1],self.height-delta[:,1]),axis=0)
         return np.sqrt((delta ** 2).sum(axis=1))
         
+    def distance_squared(self,r0,r1):
+        delta = np.abs(r0-r1)
+        delta[:,0] = np.min((delta[:,0],self.width-delta[:,0]),axis=0)
+        delta[:,1] = np.min((delta[:,1],self.height-delta[:,1]),axis=0)
+        return (delta ** 2).sum(axis=1)
+        
     def tri_area(self,triangle):
         sides = self.distance(triangle,np.roll(triangle,1,axis=0))
         p = 0.5*np.sum(sides)
@@ -216,14 +222,21 @@ class MeshNoArea(Mesh):
         triples = np.array([_sort([i,j,k]) for i in range(self.N_mesh) for j in self.neighbours[i] for k in self.neighbours[j] if (k!=i and k in self.neighbours[i])]) 
         return np.unique(triples,axis=0)
         
-    def local_density(self):
+    def local_density_DT(self):
         triples = self.get_triples()
         tri_areas = self.tri_areas(triples)
         local_density = np.zeros(self.N_mesh)
         for triple,area in zip(triples,tri_areas):
             for i in triple:
                 local_density[i]+=1./area
-        return local_density
+        return local_density        
+    
+    def cell_local_density(self,R,i):
+        return np.sum(self.geometry.distance_squared(self.centres,self.centres[i])<R**2)/(np.pi*R**2)
+    
+    def local_density(self,R):
+        return [self.cell_local_density(R,i) for i in range(self.N_mesh)]
+        
         
 def _sort(list_):
     list_.sort()

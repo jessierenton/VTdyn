@@ -107,12 +107,13 @@ def simulation_pd_density_dep_data(tissue,dt,N_steps,stepsize,rand,DELTA,OMEGA,g
 
 
 
-def run_simulation(simulation,N,timestep,timend,rand,DELTA,OMEGA,game,game_constants,til_fix=False,mutant_num=1):
+def run_simulation(simulation,N,timestep,timend,rand,params,DELTA,game,game_constants,init_time=10.,til_fix=False,mutant_num=1):
     tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
     tissue.properties['type'] = np.zeros(N*N,dtype=int)
     tissue.age = np.zeros(N*N,dtype=float)
-    tissue = run(tissue, simulation(tissue,dt,10./dt,timestep/dt,rand,DELTA,OMEGA,game,game_constants,False),10./dt,1./dt)[-1]
-    tissue.reset()
+    if init_time is not None: 
+        tissue = run(tissue, simulation(tissue,dt,init_time/dt,timestep/dt,rand,params,DELTA,game,game_constants,False),10./dt,1./dt)[-1]
+        tissue.reset()
     tissue.properties['type'][rand.choice(N*N,size=mutant_num,replace=False)]=1
-    history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,OMEGA,game,game_constants,til_fix=til_fix),timend/dt,timestep/dt)
+    history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,params,DELTA,game,game_constants,til_fix=til_fix),timend/dt,timestep/dt)
     return history

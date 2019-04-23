@@ -182,8 +182,9 @@ def run_simulation(simulation,N,timestep,timend,rand,DELTA,game,constants,til_fi
         tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
     tissue.properties['type'] = np.zeros(N*N,dtype=int)
     tissue.age = np.zeros(N*N,dtype=float)
-    tissue = run(tissue, simulation(tissue,dt,10./dt,timestep/dt,rand,DELTA,game,constants,til_fix=False),10./dt,timestep/dt)[-1]
-    tissue.reset()
+    if init_time is not None:    
+        tissue = run(tissue, simulation(tissue,dt,init_time/dt,timestep/dt,rand,DELTA,game,constants,til_fix=False),10./dt,timestep/dt)[-1]
+        tissue.reset()
     tissue.properties['type'][rand.choice(N*N,size=mutant_num,replace=False)]=1
     history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,constants,til_fix),timend/dt,timestep/dt)
     return history

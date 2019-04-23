@@ -46,10 +46,10 @@ def simulation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,til_fix=False):
         step += 1 
         yield tissue
 
-def initialise_tissue_ancestors(N,dt,timend,timestep,rand,MU=None):  
+def initialise_tissue_ancestors(N,dt,timend,timestep,rand,MU=None,save_areas=False):  
     """initialise tissue and run simulation until timend returning final state"""              
-    if MU is None: tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
-    else: tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(MU),rand,save_areas=False)
+    if MU is None: tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=save_areas)
+    else: tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(MU),rand,save_areas=save_areas)
     tissue.properties['ancestor'] = np.arange(N*N)
     tissue.age = np.zeros(N*N,dtype=float)
     if timend !=0: tissue = run(tissue,simulation_ancestor_tracking(tissue,dt,timend/dt,timestep/dt,rand),timend/dt,timestep/dt)[-1]
@@ -63,7 +63,7 @@ def run_simulation(simulation,N,timestep,timend,rand,til_fix=True,save_areas=Fal
         returns history: list of tissue objects at time intervals given by timestep
             """
     if tissue is None:
-        tissue = initialise_tissue_ancestors(N,dt,0,0,rand)
+        tissue = initialise_tissue_ancestors(N,dt,0,0,rand,save_areas=save_areas)
     history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix),timend/dt,timestep/dt)
     return history
 
@@ -74,6 +74,6 @@ def run_simulation_vary_MU(simulation,N,timestep,timend,rand,MU,dt,til_fix=True,
         returns history: list of tissue objects at time intervals given by timestep
             """
     if tissue is None:
-        tissue = initialise_tissue_ancestors(N,dt,0,0,rand,MU)
+        tissue = initialise_tissue_ancestors(N,dt,0,0,rand,MU,save_areas)
     history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix),timend/dt,timestep/dt)
     return history

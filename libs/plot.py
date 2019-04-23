@@ -40,6 +40,26 @@ def plot_tri_torus(tissue,ax=None,time = None,label=False,palette=current_palett
     plt.show()
 
 
+def plot_centres(tissue,ax=None,time = None,label=False,palette=current_palette):
+    width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
+    if ax is None: 
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        minx, miny, maxx, maxy = -width/2,-height/2,width/2,height/2
+        w, h = maxx - minx, maxy - miny
+        ax.set_xlim(minx - 0.2 * w, maxx + 0.2 * w)
+        ax.set_ylim(miny - 0.2 * h, maxy + 0.2 * h)
+        ax.set_aspect(1)
+        ax.set_axis_off()
+    centres = tissue.mesh.centres
+    plt.plot(centres[:,0], centres[:,1], '.',color = 'black')
+    if label:
+        for i, coords in enumerate(tissue.mesh.centres):
+            plt.text(coords[0],coords[1],str(i))
+    if time is not None:
+        lims = plt.axis()
+        plt.text(lims[0]+0.1,lims[3]+0.1,'t = %.2f hr'%time)
+    plt.show()
 
 def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None,animate=False):
     """plot tissue object with torus geometry

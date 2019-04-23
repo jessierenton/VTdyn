@@ -118,6 +118,40 @@ def simulation_pd_global_density_dep2(tissue,dt,N_steps,stepsize,rand,params,DEL
         complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
         yield tissue
 
+def simulation_pd_local_density_threshold(tissue,dt,N_steps,stepsize,rand,params,DELTA,game,game_constants,til_fix=False):
+    R = params['density_radius'] #desity-dependence radius
+    density_threshold_birth = params['density_threshold_birth']
+    density_threshold_death = params['density_threshold_death']
+    MU = (1./T_D)
+    LAMBDA = params['birth-to-death_ratio']*MU
+    step = 0.
+    complete = False
+    mesh = tissue.mesh
+    while not til_fix or not complete:
+        print_progress(step,N_steps)
+        N= len(tissue)
+        properties = tissue.properties
+        step += 1
+        mesh.move_all(tissue.dr(dt))
+        do_death = rand.rand() < MU*N*dt
+        do_birth = rand.rand() < LAMBDA*N*dt
+        if do_birth:
+            fitnesses = recalculate_fitnesses(mesh.neighbours,properties['type'],DELTA,game,game_constants)
+            mother = np.where(np.random.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]   
+            if mesh.cell_local_density(R,mother)<density_threshold_birth:
+                tissue.mother_ids.append(mother)
+                tissue.add_daughter_cells(mother,rand)
+                properties['type'] = np.append(properties['type'],[properties['type'][mother]]*2)
+                tissue.remove(tissue.cell_ids[mother])
+                N+=1
+        if do_death:
+            dead =rand.randint(N)
+            if mesh.cell_local_density(R,dead)>density_threshold_death: 
+                tissue.dead_ids.append(tissue.remove[dead])
+                tissue.remove(rand.randint(N))
+        tissue.update(dt)
+        complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
+        yield tissue
 # def simulation_pd_density_dep(tissue,dt,N_steps,stepsize,rand,DELTA,OMEGA,game,game_constants,til_fix=False):
 #     step = 0.
 #     complete = False

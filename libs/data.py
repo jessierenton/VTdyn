@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import functools
+from itertools import product
 
 #library of functions for saving data from a history object (list of tissues)
 
@@ -144,8 +145,26 @@ def save_mean_age(history,outdir,index=0):
          os.makedirs(outdir)
     filename = '%s/age_mean_%d'%(outdir,index)
     np.savetxt(filename,[np.mean(tissue.age) for tissue in history])
-        
+
+def save_var_to_mean_ratio_all(history,outdir,s,index=0):
+    if not os.path.exists(outdir): # if the folder doesn't exist create it
+         os.makedirs(outdir)
+    initial_types = np.unique()
+    if type is None: filename = '%s/var_to_mean_ratio_%d'%(outdir,index)
+    else: filename = '%s/var_to_mean_ratio_type_%d_%d'%(outdir,type_,index) 
+    np.savetxt(filename,[_calc_var_to_mean(tissue,s,type_) for tissue in history],fmt='%.4f')
+
     
+def _calc_var_to_mean(width,height,centres,s):
+    # width,height,centres = tissue.mesh.geometry.width,tissue.mesh.geometry.height,tissue.mesh.centres
+    range_=((-width/2.,width/2),(-height/2,height/2))
+    n_array=np.histogram2d(centres[:,0],centres[:,1],s,range_)[0]
+    return np.var(n_array)/np.mean(n_array)
+
+def calc_density(width,height,centres,s):
+    range_=((-width/2.,width/2),(-height/2,height/2))
+    return np.histogram2d(centres[:,0],centres[:,1],s,range_)[0]
+        
 def save_all(history,outdir,index=0):
     save_N_cell(history,outdir,index)
     save_N_mutant(history,outdir,index)

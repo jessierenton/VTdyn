@@ -32,7 +32,7 @@ class Geometry(object):
         """returns distance between two points"""
         raise NotImplementedError()
     
-    
+
 #
 # class Plane(Geometry):
 #
@@ -197,6 +197,9 @@ class Mesh(object):
     def get_distances(self,i):
         """get distances between cell i and its neighbours"""
         return self.geometry.distance(self.centres[i],self.centres)
+        
+    def local_density_inv_area(self):
+        return 1./self.areas + np.array([sum(1./self.areas[neighbours]) for neighbours in self.neighbours])
     
         
 class MeshNoArea(Mesh):
@@ -231,10 +234,10 @@ class MeshNoArea(Mesh):
                 local_density[i]+=1./area
         return local_density        
     
-    def cell_local_density(self,R,i):
+    def cell_local_density_radius(self,R,i):
         return np.sum(self.geometry.distance_squared(self.centres,self.centres[i])<R**2)/(np.pi*R**2)
     
-    def local_density(self,R):
+    def local_density_radius(self,R):
         return [self.cell_local_density(R,i) for i in range(self.N_mesh)]
         
         

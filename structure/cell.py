@@ -8,7 +8,7 @@ class Tissue(object):
     
     """Defines a tissue comprised of cells which can move, divide and be extruded"""
     
-    def __init__(self,mesh,force,cell_ids,next_id,age,mother,properties=None):
+    def __init__(self,mesh,force,cell_ids,next_id,age,mother,properties=None,dead_ids=[],mother_ids=[],store_dead=False,time=0.):
         """ Parameters:
         mesh: Mesh object
             defines cell locations and neighbour connections
@@ -33,6 +33,12 @@ class Tissue(object):
         self.age = age
         self.mother = mother
         self.properties = properties or {}
+        self.store_dead = store_dead
+        if store_dead:    
+            self.dead_ids = dead_ids
+            self.mother_ids = mother_ids
+        self.time=time
+        
         
     def __len__(self):
         return len(self.mesh)
@@ -43,18 +49,24 @@ class Tissue(object):
         self.age = np.zeros(N,dtype=float)
         self.next_id = N
         self.mother = -np.ones(N,dtype=int)
+        self.time += dt
         
     
     def copy(self):
         """create a copy of Tissue"""
-        return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(),self.mother.copy(),self.properties.copy())
+        return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(),self.mother.copy(),self.properties.copy(),self.dead_ids,self.mother_ids,self.store_dead,self.time)
             
     def update(self,dt):
         self.mesh.update()
         self.age += dt      
+        self.time += dt
     
-    def remove(self,idx_list):
-        """remove a cell from tissue"""
+    def remove(self,idx_list,mother=None):
+        """remove a cell (or cells) from tissue. if storing dead cell ids need arg mother=True if cell is being removed
+        following division, false otherwise. can be list."""
+        if self.store_dead:
+            self.mother_ids.extend(self.cell_ids[idx_list[mother]])
+            self.dead_ids.extend(self.cell_ids[idx_list[~mother]])
         self.mesh.remove(idx_list)
         self.cell_ids = np.delete(self.cell_ids,idx_list)
         self.age = np.delete(self.age,idx_list)
@@ -73,6 +85,14 @@ class Tissue(object):
         self.age = np.append(self.age,[0.0,0.0])
         self.mother = np.append(self.mother,[self.cell_ids[i]]*2)
         self.next_id += 2
+        for key,val in self.properties.iteritems():
+            self.properties[key] = np.append(self.properties[key],[self.properties[key][i]]*2)   
+    
+    def add_many_daughter_cells(self,idx_list,rand):
+         if len(idx_list)==1: self.add_daughter_cells(idx_list[0],rand)
+         else:
+             for i in idx_list:
+                 self.add_daughter_cells(i,rand)
         
     def dr(self,dt): 
         """calculate distance cells move due to force law in time dt"""  

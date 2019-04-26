@@ -71,12 +71,12 @@ def run_parallel(b,cluster_size,i):
     history = run_simulation_cluster(l,timestep,timend,rand,DELTA,prisoners_dilemma_averaged,(b,c),cluster_size,save_areas=False)
     if 0 not in history[-1].properties['type']:
         fix = 1  
-        # data.save_N_mutant_type(history,outdir+'/fixed_b%.1f'%b,i)
+        # data.save_N_mutant(history,outdir+'/fixed_b%.1f'%b,i)
     elif 1 not in history[-1].properties['type']:
         fix = 0
     else: 
         fix = -1
-        data.save_N_mutant_type(history,outdir+'/incomplete_b%.1f'%b,i)
+        data.save_N_mutant(history,outdir+'/incomplete_b%.1f'%b,i)
     return fix
 
 cpunum=mp.cpu_count()

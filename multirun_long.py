@@ -41,7 +41,7 @@ def run_parallel(b,i):
     """
     rand=np.random.RandomState()
     history = run_simulation(simulation_decoupled_update,l,timestep,timend,rand,DELTA,prisoners_dilemma_averaged,(b,c),save_areas=False,til_fix=False,mutant_num=60)
-    data.save_N_mutant_type(history,outdir+'/l20_b%.1f'%b,i)
+    data.save_N_mutant(history,outdir+'/l20_b%.1f'%b,i)
     return history
 
 pool = Pool(maxtasksperchild=1000) # creating a pool of workers to run simulations in parallel

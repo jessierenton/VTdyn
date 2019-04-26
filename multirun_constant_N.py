@@ -49,7 +49,7 @@ def run_parallel(b,i):
         fix = 0
     else: 
         fix = -1
-        data.save_N_mutant_type(history,outdir+'/incomplete_b%.1f'%b,i)
+        data.save_N_mutant(history,outdir+'/incomplete_b%.1f'%b,i)
     return fix
 
 pool = Pool(maxtasksperchild=1000) # creating a pool of workers to run simulations in parallel

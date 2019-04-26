@@ -45,12 +45,12 @@ def run_parallel(b,i):
     history = run_simulation(simulation_death_birth,l,timestep,timend,rand,DELTA,prisoners_dilemma_averaged,(b,c),save_areas=False)
     if 0 not in history[-1].properties['type']:
         fix = 1  
-        # data.save_N_mutant_type(history,outdir+'/fixed_b%.1f'%b,i)
+        # data.save_N_mutant(history,outdir+'/fixed_b%.1f'%b,i)
     elif 1 not in history[-1].properties['type']:
         fix = 0
     else: 
         fix = -1
-        data.save_N_mutant_type(history,outdir+'/incomplete_b%.1f'%b,i)
+        data.save_N_mutant(history,outdir+'/incomplete_b%.1f'%b,i)
     return fix
 
 pool = Pool(maxtasksperchild=1000) # creating a pool of workers to run simulations in parallel

@@ -61,7 +61,6 @@ def save_neighbour_distr(history,outdir,index=0):
     np.savetxt(wfilename,[np.bincount([len(tissue.mesh.neighbours[i]) for i in range(len(tissue))],minlength=18) for tissue in history],fmt=(['%d']*18))
 
 
-        
 def save_N_cell(history,outdir,index=0):
     """save number of cells in each tissue"""
     if not os.path.exists(outdir): # if the folder doesn't exist create it
@@ -70,13 +69,6 @@ def save_N_cell(history,outdir,index=0):
     np.savetxt(wfilename,[len(tissue) for tissue in history],fmt=('%d'))
 
 def save_N_mutant(history,outdir,index=0):
-    """saves number of mutants in each tissue given by 'mutant' property"""
-    if not os.path.exists(outdir): # if the folder doesn't exist create it
-         os.makedirs(outdir)
-    wfilename = '%s/%s_%d'%(outdir,'N_mutant',index)  
-    np.savetxt(wfilename,[sum(tissue.properties['mutant']) for tissue in history],fmt=('%d'))
-
-def save_N_mutant_type(history,outdir,index=0):
     """saves number of mutants in each tissue given by 'type' property"""
     if not os.path.exists(outdir): # if the folder doesn't exist create it
          os.makedirs(outdir)

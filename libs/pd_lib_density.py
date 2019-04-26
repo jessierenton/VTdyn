@@ -69,50 +69,8 @@ def simulation_pd_density_dep(tissue,dt,N_steps,stepsize,rand,params,DELTA,game,
         complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
         yield tissue
 
-def simulation_pd_density_dep_data(tissue,dt,N_steps,stepsize,rand,params,DELTA,game,game_constants,til_fix=False):
-    OMEGA = params['OMEGA']
-    step = 0.
-    complete = False
-    with open('dd/event_data','a') as f:
-        f.write('event#  mother_cid  mother_mid  dead_cid  dead_mid \n')
-        event = 0
-    while not til_fix or not complete:
-        # print_progress(step,N_steps)
-        N= len(tissue)
-        properties = tissue.properties
-        mesh = tissue.mesh
-        step += 1
-        mesh.move_all(tissue.dr(dt))
-        if rand.rand() < (1./T_D)*N*dt:
-            fitnesses = recalculate_fitnesses(mesh.neighbours,properties['type'],DELTA,game,game_constants)
-            mother = np.where(np.random.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]   
-            densities = mesh.local_density()
-            prob_dying = 1 - OMEGA + OMEGA*densities
-            prob_dying[mother]=0
-            prob_dying = prob_dying/sum(prob_dying)
-            dead = np.where(np.random.multinomial(1,prob_dying)==1)[0][0]
-            with open('dd/event_data','a') as f:
-                f.write('%4d    %2d          %2d          %2d        %2d \n'%(event,mother,tissue.cell_ids[mother],dead,tissue.cell_ids[dead]))
-            with open('dd/neighbours/%02d'%event,'w') as f:
-                for cell_neighbours in mesh.neighbours:
-                    for cell in cell_neighbours:
-                        f.write('%2d '%cell)
-                    f.write('\n')
-            with open('dd/densities/%02d'%event,'w') as f:
-                for d in densities:
-                    f.write('%2f \n'%d)
-            tissue.add_daughter_cells(mother,rand)
-            properties['type'] = np.append(properties['type'],[properties['type'][mother]]*2)
-            tissue.remove((mother,dead))
-            event += 1
-        tissue.update(dt)
-        complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0  
-        yield tissue
-
-
-
-def run_simulation(simulation,N,timestep,timend,rand,params,DELTA,game,game_constants,init_time=10.,til_fix=False,mutant_num=1):
-    tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
+def run_simulation(simulation,N,timestep,timend,rand,params,DELTA,game,game_constants,init_time=10.,til_fix=False,mutant_num=1,save_areas=False):
+    tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=save_areas)
     tissue.properties['type'] = np.zeros(N*N,dtype=int)
     tissue.age = np.zeros(N*N,dtype=float)
     if init_time is not None: 

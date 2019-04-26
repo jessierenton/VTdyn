@@ -179,7 +179,7 @@ def run_simulation(simulation,N,timestep,timend,rand,DELTA,game,constants,init_t
         returns history: list of tissue objects at time intervals given by timestep
             """
     if tissue is None:
-        tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=False)
+        tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=save_areas)
     tissue.properties['type'] = np.zeros(N*N,dtype=int)
     tissue.age = np.zeros(N*N,dtype=float)
     if init_time is not None:    

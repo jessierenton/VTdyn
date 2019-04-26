@@ -8,7 +8,7 @@ class Tissue(object):
     
     """Defines a tissue comprised of cells which can move, divide and be extruded"""
     
-    def __init__(self,mesh,force,cell_ids,next_id,age,mother,properties=None,dead_ids=[],mother_ids=[],store_dead=False,time=0.):
+    def __init__(self,mesh,force,cell_ids,next_id,age,mother,properties=None,extruded_cells=[],divided_cells=[],store_dead=False,time=0.):
         """ Parameters:
         mesh: Mesh object
             defines cell locations and neighbour connections
@@ -35,8 +35,8 @@ class Tissue(object):
         self.properties = properties or {}
         self.store_dead = store_dead
         if store_dead:    
-            self.dead_ids = dead_ids
-            self.mother_ids = mother_ids
+            self.extruded_cells = extruded_cells
+            self.divided_cells = divided_cells
         self.time=time
         
         
@@ -54,7 +54,7 @@ class Tissue(object):
     
     def copy(self):
         """create a copy of Tissue"""
-        return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(),self.mother.copy(),self.properties.copy(),self.dead_ids,self.mother_ids,self.store_dead,self.time)
+        return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(),self.mother.copy(),self.properties.copy(),self.extruded_cells[:],self.divided_cells[:],self.store_dead,self.time)
             
     def update(self,dt):
         self.mesh.update()
@@ -65,8 +65,8 @@ class Tissue(object):
         """remove a cell (or cells) from tissue. if storing dead cell ids need arg mother=True if cell is being removed
         following division, false otherwise. can be list."""
         if self.store_dead:
-            self.mother_ids.extend(self.cell_ids[idx_list[mother]])
-            self.dead_ids.extend(self.cell_ids[idx_list[~mother]])
+            self.divided_cells.extend(self.cell_ids[idx_list[mother]])
+            self.extruded_cells.extend(self.cell_ids[idx_list[~mother]])
         self.mesh.remove(idx_list)
         self.cell_ids = np.delete(self.cell_ids,idx_list)
         self.age = np.delete(self.age,idx_list)

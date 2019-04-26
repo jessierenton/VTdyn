@@ -198,9 +198,14 @@ class Mesh(object):
         """get distances between cell i and its neighbours"""
         return self.geometry.distance(self.centres[i],self.centres)
         
-    def local_density_inv_area(self):
+    def local_density(self):
         return 1./self.areas + np.array([sum(1./self.areas[neighbours]) for neighbours in self.neighbours])
     
+    def cell_local_density_radius(self,R,i):
+        return np.sum(self.geometry.distance_squared(self.centres,self.centres[i])<R**2)/(np.pi*R**2)
+    
+    def local_density_radius(self,R):
+        return [self.cell_local_density(R,i) for i in range(self.N_mesh)]
         
 class MeshNoArea(Mesh):
     def __init__(self,centres,geometry):
@@ -225,7 +230,7 @@ class MeshNoArea(Mesh):
         triples = np.array([_sort([i,j,k]) for i in range(self.N_mesh) for j in self.neighbours[i] for k in self.neighbours[j] if (k!=i and k in self.neighbours[i])]) 
         return np.unique(triples,axis=0)
         
-    def local_density_DT(self):
+    def local_density(self):
         triples = self.get_triples()
         tri_areas = self.tri_areas(triples)
         local_density = np.zeros(self.N_mesh)
@@ -233,12 +238,6 @@ class MeshNoArea(Mesh):
             for i in triple:
                 local_density[i]+=1./area
         return local_density        
-    
-    def cell_local_density_radius(self,R,i):
-        return np.sum(self.geometry.distance_squared(self.centres,self.centres[i])<R**2)/(np.pi*R**2)
-    
-    def local_density_radius(self,R):
-        return [self.cell_local_density(R,i) for i in range(self.N_mesh)]
         
         
 def _sort(list_):

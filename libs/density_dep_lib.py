@@ -79,7 +79,7 @@ def simulation_local_density_dep(tissue,dt,N_steps,stepsize,rand,til_fix=False,p
         mesh.move_all(tissue.dr(dt))
         if game == 'simple': fitnesses = simple_fitness(properties['type'],DELTA,game_params)
         else: fitnesses = recalculate_fitnesses(mesh.neighbours,properties['type'],DELTA,game,game_params)
-        densities = mesh.local_density_inv_area()
+        densities = mesh.local_density()
         births = np.where(rand.rand(N) < fitnesses*birth_rate*birth_dd_func(densities,*birth_dd_params)*dt)[0]
         deaths = np.where(rand.rand(N) < death_rate*death_dd_func(densities,*death_dd_params)*dt)[0]
         if len(births)!=0 or len(deaths)!=0:

@@ -51,12 +51,12 @@ def simple_fitness(types,DELTA,r):
 def linear_density_dep(densities,critical_density,gradient):
     pass
 
-def step_density_dep(densities,critical_density,invert):
-    if invert: return (densities<critical_density)
-    else: return (densities>critical_density)
+def step_density_dep(densities,A,critical_density,invert):
+    if invert: return A*(densities<critical_density)
+    else: return A*(densities>critical_density)
     
-def no_density_dep(densities):
-    return np.ones(len(densities))
+def no_density_dep(densities,A):
+    return A*np.ones(len(densities))
 
 def simulation_local_density_dep(tissue,dt,N_steps,stepsize,rand,til_fix=False,progress_on=False,store_dead=False,save_events=False,**kwargs):
     step = 0.

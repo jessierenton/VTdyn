@@ -18,8 +18,8 @@ game_params = 1.
 DELTA=0.0
 birth_dd_func = lib.step_density_dep
 death_dd_func = lib.step_density_dep
-birth_dd_params = (7*2./3**0.5,True) 
-death_dd_params = (7*2./3**0.5,False) 
+birth_dd_params = (3.,7*2./3**0.5,True) 
+death_dd_params = (3.,7*2./3**0.5,False) 
 birth_to_death_rate_ratio = 1.
 
 params={'game':game,'game_params':game_params,'DELTA':DELTA,'birth_dd_func':birth_dd_func,'death_dd_func':death_dd_func,

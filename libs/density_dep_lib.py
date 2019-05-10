@@ -48,12 +48,12 @@ def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_params):
 def simple_fitness(types,DELTA,r):
     return 1+DELTA*r*types
 
-def linear_density_dep(densities,critical_density,gradient):
-    pass
+def linear_density_dep(densities,gradient,critical_density,y_int):
+    return gradient*densities/critical_density+y_int
 
 def step_density_dep(densities,A,critical_density,invert):
-    if invert: return A*(densities<critical_density)
-    else: return A*(densities>critical_density)
+    if invert: return 2*A*(densities<critical_density)
+    else: return 2*A*(densities>critical_density)
     
 def no_density_dep(densities,A):
     return A*np.ones(len(densities))

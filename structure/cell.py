@@ -43,13 +43,13 @@ class Tissue(object):
     def __len__(self):
         return len(self.mesh)
     
-    def reset(self):
+    def reset(self,reset_age=True):
         N = len(self)
         self.cell_ids = np.arange(N,dtype=int)
-        self.age = np.zeros(N,dtype=float)
+        if reset_age: self.age = np.zeros(N,dtype=float)
         self.next_id = N
         self.mother = -np.ones(N,dtype=int)
-        self.time += dt
+        self.time = 0.
         
     
     def copy(self):
@@ -74,7 +74,7 @@ class Tissue(object):
         for key,val in self.properties.iteritems():
             self.properties[key] = np.delete(val,idx_list)
         
-    def add_daughter_cells(self,i,rand):
+    def add_daughter_cells(self,i,rand,daughter_properties=None):
         """add pair of new cells after a cell division"""
         angle = rand.rand()*np.pi
         dr = np.array((EPS*np.cos(angle),EPS*np.sin(angle)))
@@ -86,7 +86,8 @@ class Tissue(object):
         self.mother = np.append(self.mother,[self.cell_ids[i]]*2)
         self.next_id += 2
         for key,val in self.properties.iteritems():
-            self.properties[key] = np.append(self.properties[key],[self.properties[key][i]]*2)   
+            try: val_self.properties[key] = np.append(self.properties[key],daughter_properties[key])  
+            except: self.properties[key] = np.append(self.properties[key],[self.properties[key][i]]*2)   
     
     def add_many_daughter_cells(self,idx_list,rand):
          if len(idx_list)==1: self.add_daughter_cells(idx_list[0],rand)

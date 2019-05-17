@@ -85,7 +85,7 @@ def simulation_local_density_dep(tissue,dt,N_steps,stepsize,rand,til_fix=False,p
         if len(births)!=0 or len(deaths)!=0:
             births_and_deaths(tissue,births,deaths,rand,store_dead)      
         tissue.update(dt)
-        complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0 
+        if til_fix: complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0 
         if not save_events or (len(births)!=0 or len(deaths)!=0): yield tissue 
         else: yield None       
 

@@ -75,7 +75,8 @@ class Tissue(object):
             self.properties[key] = np.delete(val,idx_list)
         
     def add_daughter_cells(self,i,rand,daughter_properties=None):
-        """add pair of new cells after a cell division"""
+        """add pair of new cells after a cell division. copies properties dictionary from mother unless alternative values
+        are specified in the daughter_properties argument"""
         angle = rand.rand()*np.pi
         dr = np.array((EPS*np.cos(angle),EPS*np.sin(angle)))
         new_cen1 = self.mesh.centres[i] + dr
@@ -86,8 +87,10 @@ class Tissue(object):
         self.mother = np.append(self.mother,[self.cell_ids[i]]*2)
         self.next_id += 2
         for key,val in self.properties.iteritems():
-            try: val_self.properties[key] = np.append(self.properties[key],daughter_properties[key])  
-            except: self.properties[key] = np.append(self.properties[key],[self.properties[key][i]]*2)   
+            if daughter_properties is None or key not in daughter_properties: 
+                self.properties[key] = np.append(self.properties[key],[self.properties[key][i]]*2)
+            else: 
+                self.properties[key] = np.append(self.properties[key],daughter_properties[key])  
     
     def add_many_daughter_cells(self,idx_list,rand):
          if len(idx_list)==1: self.add_daughter_cells(idx_list[0],rand)

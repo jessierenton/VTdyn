@@ -101,7 +101,14 @@ class Tissue(object):
     def dr(self,dt): 
         """calculate distance cells move due to force law in time dt"""  
         return (dt/ETA)*self.Force(self)
-        
+
+    def cell_stress(self,i):
+        """calculates the stress p_i on a single cell i according to the formula p_i = sum_j mag(F^rep_ij.u_ij)/l_ij
+        where F^rep_ij is the repulsive force between i and j, i.e. F^rep_ij=F_ij if Fij is positive, 0 otherwise;
+        u_ij is the unit vector between the i and j cell centres and l_ij is the length of the edge between cells i and j"""     
+        edge_lengths = self.mesh.edge_lengths(i)
+        repulsive_forces = self.Force.force_i_mag_repulsive(self,i)
+        return sum(repulsive_forces/edge_lengths)    
         
 class Force(object):
     """Abstract force object"""
@@ -122,7 +129,7 @@ class BasicSpringForceTemp(Force):
         self.MU=MU
     
     def force(self,tissue):
-        return np.array([self.force_i(tissue,i,dist,vec,neigh) for i,(dist,vec,neigh) in enumerate(zip(tissue.mesh.distances,tissue.mesh.unit_vecs,tissue.mesh.neighbours))])
+        return np.array([self.force_i(tissue,i) for i in range(len(tissue))])
     
     def force_i(self):
         """returns force on cell i"""
@@ -130,15 +137,24 @@ class BasicSpringForceTemp(Force):
 
 class BasicSpringForceNoGrowth(BasicSpringForceTemp):
     
-    def force_i(self,tissue,i,distances,vecs,n_list):
+    def force_i(self,tissue,i):
+        distances,vecs,n_list = tissue.mesh.distances[i],tissue.mesh.unit_vecs[i],tissue.mesh.neighbours[i]
         if tissue.age[i] >= 1.0 or tissue.mother[i] == -1: pref_sep = L0
         else: pref_sep = (tissue.mother[n_list]==tissue.mother[i])*((L0-EPS)*tissue.age[i]+EPS-L0) +L0
-        return (self.MU*vecs*np.repeat((distances-pref_sep)[:,np.newaxis],2,axis=1)).sum(axis=0)    
-
+        return (self.MU*vecs*np.repeat((distances-pref_sep)[:,np.newaxis],2,axis=1)).sum(axis=0)
+    
+    def force_i_mag_repulsive(self,tissue,i):
+        distances,vecs,n_list = tissue.mesh.distances[i],tissue.mesh.unit_vecs[i],tissue.mesh.neighbours[i]
+        if tissue.age[i] >= 1.0 or tissue.mother[i] == -1: pref_sep = L0
+        else: pref_sep = (tissue.mother[n_list]==tissue.mother[i])*((L0-EPS)*tissue.age[i]+EPS-L0) +L0
+        repulsive_forces = self.MU*(distances-pref_sep) 
+        repulsive_forces[repulsive_forces<0]=0
+        return repulsive_forces
 
 class BasicSpringForceGrowth(BasicSpringForceTemp):
 
-    def force_i(self,tissue,i,distances,vecs,n_list):
+    def force_i(self,tissue,i):
+        distances,vecs,n_list = tissue.mesh.distances[i],tissue.mesh.unit_vecs[i],tissue.mesh.neighbours[i]
         pref_sep = RHO+0.5*GROWTH_RATE*(tissue.age[n_list]+tissue.age[i])
         return (self.MU*vecs*np.repeat((distances-pref_sep)[:,np.newaxis],2,axis=1)).sum(axis=0)
 
@@ -148,7 +164,8 @@ class SpringForceVariableMu(BasicSpringForceTemp):
         BasicSpringForceTemp.__init__(MU)
         self.delta = delta
 
-    def force_i(self,tissue,i,distances,vecs,n_list):
+    def force_i(self,tissue,i):
+        distances,vecs,n_list = tissue.mesh.distances[i],tissue.mesh.unit_vecs[i],tissue.mesh.neighbours[i]
         pref_sep = RHO+0.5*GROWTH_RATE*(tissue.age[n_list]+tissue.age[i])
         MU_list = self.MU*(1-0.5*self.delta*(tissue.properties['mutant'][n_list]+tissue.properties['mutant'][i]))
         return (vecs*np.repeat((MU_list*(distances-pref_sep))[:,np.newaxis],2,axis=1)).sum(axis=0)
@@ -159,7 +176,8 @@ class MutantSpringForce(BasicSpringForceTemp):
         BasicSpringForceTemp.__init__(MU)
         self.alpha = alpha
 
-    def force_i(self,tissue,i,distances,vecs,n_list):
+    def force_i(self,tissue,i):
+        distances,vecs,n_list = tissue.mesh.distances[i],tissue.mesh.unit_vecs[i],tissue.mesh.neighbours[i]
         pref_sep = RHO+0.5*GROWTH_RATE*(tissue.age[n_list]+tissue.age[i])
         alpha_i = tissue.properties['mutant'][i]*(self.alpha-1)+1
         return (vecs*np.repeat((MU/alpha_i*(distances-pref_sep))[:,np.newaxis],2,axis=1)).sum(axis=0)

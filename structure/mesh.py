@@ -6,6 +6,13 @@ def polygon_area(points):
     n_p = len(points)
     return 0.5*sum(points[i][0]*points[(i+1)%n_p][1]-points[(i+1)%n_p][0]*points[i][1] for i in range(n_p))
 
+def circumcenter(A,B,C):
+    """calculate circumcenter from coords of triangle vertices taken as a (3,2)-array"""
+    D = 2*(A[0]*(B[1]-C[1])+B[0]*(C[1]-A[1])+C[0]*(A[1]-B[1]))
+    Px = 1./D*((A[0]**2+A[1]**2)*(B[1]-C[1])+(B[0]**2+B[1]**2)*(C[1]-A[1])+(C[0]**2+C[1]**2)*(A[1]-B[1]))
+    Py = 1./D*((A[0]**2+A[1]**2)*(C[0]-B[0])+(B[0]**2+B[1]**2)*(A[0]-C[0])+(C[0]**2+C[1]**2)*(B[0]-A[0]))
+    return Px,Py
+    
 class Geometry(object):
     """Abstract Geometry object needed for Mesh."""
     
@@ -114,7 +121,6 @@ class TorusNoArea(Torus):
 
         return neighbours,distances,sep_vectors
         
-        
 # class Cylinder(Geometry):
 #     def __init__(self,width):
 #         self.width = width
@@ -133,6 +139,7 @@ class TorusNoArea(Torus):
 
 
 class Mesh(object):
+    
     """ 
     keeps track of cell positions and neighbour relations and defines methods for moving cells and updating
     Attributes: N_cells = number of cells 
@@ -194,7 +201,7 @@ class Mesh(object):
     def delaunay(self):
         return Delaunay(self.centres)
         
-    def get_distances(self,i):
+    def distances(self,i):
         """get distances between cell i and its neighbours"""
         return self.geometry.distance(self.centres[i],self.centres)
         
@@ -206,6 +213,29 @@ class Mesh(object):
     
     def local_density_radius(self,R):
         return [self.cell_local_density(R,i) for i in range(self.N_mesh)]
+
+    def triangle_areas(self,triples):
+        """returns list of areas of each triangle in DT"""
+        return [self.geometry.tri_area(self.centres[triple]) for triple in triples]
+                
+    def triples(self):
+        """returns list of triples corresponding to triangles in DT"""
+        triples = np.array([sorted([i,j,k]) for i in range(self.N_mesh) for j in self.neighbours[i] for k in self.neighbours[j] if (k!=i and k in self.neighbours[i])]) 
+        return np.unique(triples,axis=0)
+        
+    def edge_lengths(self,i):
+        """returns list of edge lengths (corresponding to interface between cells in neighbour list) for a Voronoi cell i"""
+        neighbour_pairs = np.array([sorted([j,k]) for j in self.neighbours[i] for k in self.neighbours[j] if (k!=i and k in self.neighbours[i])])
+        neighbour_pairs = np.unique(neighbour_pairs,axis=0)
+        vertices = [circumcenter(self.centres[i],*self.centres[pair]) for pair in neighbour_pairs]
+        edge_lengths = np.array([self.edge_length_ij(j,neighbour_pairs,vertices) for j in self.neighbours[i]])
+        return edge_lengths
+        
+    def edge_length_ij(self,j,neighbour_pairs_of_i,vertices_of_i):
+        vertex_id_locations = np.where(neighbour_pairs_of_i==j)
+        edge_vector = np.array(vertices_of_i[vertex_id_locations[0][1]])-np.array(vertices_of_i[vertex_id_locations[1][1]])
+        return (edge_vector[0]**2+edge_vector[1]**2)**0.5  
+        
         
 class MeshNoArea(Mesh):
     def __init__(self,centres,geometry):
@@ -221,26 +251,13 @@ class MeshNoArea(Mesh):
     def retriangulate(self):
         return self.geometry.retriangulate(self.centres,self.N_mesh)
         
-    def tri_areas(self,triples):
-        """returns list of areas of each triangle in DT"""
-        return [self.geometry.tri_area(self.centres[triple]) for triple in triples]
-                
-    def get_triples(self):
-        """returns list of triples corresponding to triangles in DT"""
-        triples = np.array([_sort([i,j,k]) for i in range(self.N_mesh) for j in self.neighbours[i] for k in self.neighbours[j] if (k!=i and k in self.neighbours[i])]) 
-        return np.unique(triples,axis=0)
-        
     def local_density(self):
-        triples = self.get_triples()
-        tri_areas = self.tri_areas(triples)
+        triples = self.triples()
+        triangle_areas = self.triangle_areas(triples)
         local_density = np.zeros(self.N_mesh)
-        for triple,area in zip(triples,tri_areas):
+        for triple,area in zip(triples,triangle_areas):
             for i in triple:
                 local_density[i]+=1./area
         return local_density        
-        
-        
-def _sort(list_):
-    list_.sort()
-    return list_
+
         

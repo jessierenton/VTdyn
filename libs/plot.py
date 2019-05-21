@@ -61,7 +61,8 @@ def plot_centres(tissue,ax=None,time = None,label=False,palette=current_palette)
         plt.text(lims[0]+0.1,lims[3]+0.1,'t = %.2f hr'%time)
     plt.show()
 
-def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None,animate=False):
+def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None,animate=False,
+                heat_map=None,plot_vals=None):
     """plot tissue object with torus geometry
     args
     ---------------
@@ -76,6 +77,10 @@ def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,
     boundary: (bool) if True plot square boundary over which tissue is periodic
     colours: (array) provide colours for specific key values (if key not None) OR colour of each cell 
     animate: (bool) True if plot is part of animation
+    heat_map: (dict) 
+        heat_map['data'] is array of floats with data val for each cell
+        options to provide 'palette', 'bins':(int) and 'min,max':(float,float)
+    plot_vals: (array,str) array gives data val for each cell, str gives format to convert to text
     """
     width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
     centres = tissue.mesh.centres 
@@ -100,15 +105,25 @@ def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,
     ax.set_xticks([])
     ax.set_yticks([])
     
-    if key is None and colours is None: ax.add_collection(PatchCollection([PolygonPatch(p,linewidth=2.5,edgecolor='black') for p in mp],match_original=True))
-    elif key is not None:
-        if colours is None: colours = palette[tissue.properties[key]]
+    if key is None and colours is None and heat_map is None:
+        ax.add_collection(PatchCollection([PolygonPatch(p,linewidth=2.5,edgecolor='black') for p in mp],match_original=True))
+    else:
+        if key is not None:
+            if colours is None: colours = palette[tissue.properties[key]]
+            else: colours = colours[tissue.properties[key]]           
+        elif heat_map is not None:
+            if 'bins' in heat_map: bins = heat_map['bins']
+            else: bins = 500
+            if 'palette' in heat_map: palette = heat_map['palette']
+            else: palette = np.array(sns.cubehelix_palette(bins,start=.5,rot=-.75))
+            data = heat_map['data']
+            if 'min,max' in heat_map: dmin,dmax = heat_map['min,max']
+            else: dmin,dmax = np.min(data),np.max(data)
+            bin_bounds = np.arange(bins)*(dmax-dmin)/bins+dmin
+            data_bins = np.digitize(data,bin_bounds)-1
+            colours = palette[data_bins]
         coll = PatchCollection([PolygonPatch(p,facecolor = c,linewidth=2.5,edgecolor='black') for p,c in zip(mp,colours)],match_original=True)
-        ax.add_collection(coll)
-    elif colours is not None:
-        coll = PatchCollection([PolygonPatch(p,facecolor = colours,linewidth=2.5,edgecolor='black') for p in mp],match_original=True)
-        ax.add_collection(coll)
-    
+        ax.add_collection(coll) 
     if show_centres: 
         plt.plot(centres[:,0], centres[:,1], 'o',color='black')
     if cell_ids:
@@ -124,6 +139,10 @@ def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,
     if key_label is True:
         for id, coords in zip(tissue.properties[key],tissue.mesh.centres):
             plt.text(coords[0],coords[1],str(id))
+    if plot_vals is not None:
+        data,fmt = plot_vals[0],plot_vals[1]
+        for val,coords in zip(data,tissue.mesh.centres):
+            plt.text(coords[0],coords[1],fmt%val)
     if boundary: 
         ax.add_patch(patches.Rectangle((-width/2,-height/2),width,height,fill=False,linewidth=1.5))
     if not animate: plt.show()

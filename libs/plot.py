@@ -13,12 +13,47 @@ current_palette = sns.color_palette()
 
 #functions for plotting and animating tissue objects/histories
 
+def set_heatmap_colours(heat_map):
+    if 'bins' in heat_map: bins = heat_map['bins']
+    else: bins = 100
+    if 'palette' in heat_map: palette = heat_map['palette']
+    else: palette = np.array(sns.cubehelix_palette(bins,start=.5,rot=-.75))
+    data = heat_map['data']
+    if 'min,max' in heat_map: dmin,dmax = heat_map['min,max']
+    else: dmin,dmax = np.floor(np.min(data)),np.ceil(np.max(data))
+    bin_bounds = np.arange(bins)*(dmax-dmin)/bins+dmin
+    data_bins = np.digitize(data,bin_bounds)-1
+    return palette[data_bins],palette,bin_bounds
 
-def plot_tri_torus(tissue,ax=None,time = None,label=False,palette=current_palette):
+def set_key_colours(key,colours=None):
+    if colours is None: 
+        key_max = max((max(tissue.properties[key]) for tissue in history))
+        if key_max>6:
+            palette = np.array(sns.color_palette("husl", key_max+1))
+            np.random.shuffle(palette)
+        colours = palette[tissue.properties[key]]
+    else: colours = colours[tissue.properties[key]]
+    return colours
+
+def plot_colour_bar(fig,palette,bin_bounds):
+    ax=fig.add_axes((0.2,0.1,0.6,0.03))
+    ax.set_ylim([0,1])
+    ax.set_xlim([bin_bounds[0],bin_bounds[-1]])
+    ax.set_yticks([])
+    n=len(palette)
+    dx=bin_bounds[1]-bin_bounds[0]
+    rects = (patches.Rectangle((x,0.), dx, 1.,
+                      color=c) for x,c in zip(bin_bounds[:-1],palette))
+    for r in rects:
+        ax.add_patch(r)
+            
+
+
+def plot_tri_torus(tissue,fig=None,ax=None,time = None,label=False,palette=current_palette):
     """plot Delaunay triangulation of a tissue object (i.e. cell centres and neighbour connections) with torus geometry"""
     width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
     if ax is None: 
-        fig = plt.figure()
+        if fig is None: fig = plt.figure()
         ax = fig.add_subplot(111)
         minx, miny, maxx, maxy = -width/2,-height/2,width/2,height/2
         w, h = maxx - minx, maxy - miny
@@ -61,7 +96,7 @@ def plot_centres(tissue,ax=None,time = None,label=False,palette=current_palette)
         plt.text(lims[0]+0.1,lims[3]+0.1,'t = %.2f hr'%time)
     plt.show()
 
-def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,ax=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None,animate=False,
+def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,ax=None,fig=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None,animate=False,
                 heat_map=None,plot_vals=None):
     """plot tissue object with torus geometry
     args
@@ -109,19 +144,12 @@ def torus_plot(tissue,palette=np.array(current_palette),key=None,key_label=None,
         ax.add_collection(PatchCollection([PolygonPatch(p,linewidth=2.5,edgecolor='black') for p in mp],match_original=True))
     else:
         if key is not None:
-            if colours is None: colours = palette[tissue.properties[key]]
-            else: colours = colours[tissue.properties[key]]           
+            set_key_colours(key,colours=None)          
         elif heat_map is not None:
-            if 'bins' in heat_map: bins = heat_map['bins']
-            else: bins = 500
-            if 'palette' in heat_map: palette = heat_map['palette']
-            else: palette = np.array(sns.cubehelix_palette(bins,start=.5,rot=-.75))
-            data = heat_map['data']
-            if 'min,max' in heat_map: dmin,dmax = heat_map['min,max']
-            else: dmin,dmax = np.min(data),np.max(data)
-            bin_bounds = np.arange(bins)*(dmax-dmin)/bins+dmin
-            data_bins = np.digitize(data,bin_bounds)-1
-            colours = palette[data_bins]
+            colours,palette,bin_bounds = set_heatmap_colours(heat_map)
+            if 'show_cbar' in heat_map:
+                if heat_map['show_cbar']:
+                    plot_colour_bar(fig,palette,bin_bounds)
         coll = PatchCollection([PolygonPatch(p,facecolor = c,linewidth=2.5,edgecolor='black') for p,c in zip(mp,colours)],match_original=True)
         ax.add_collection(coll) 
     if show_centres: 
@@ -157,7 +185,6 @@ def save_mpg_torus(history, name, index=None,key = None, delete_images=True):
     key: (str) color code cells by key. must match a tissue.properties key, e.g. type, ancestors
     delete_images: (bool) if True delete image files after creating video
     """
-    outputdir="images"
     if not os.path.exists(outputdir): # if the folder doesn't exist create it
         os.makedirs(outputdir)
     width,height = history[0].mesh.geometry.width,history[0].mesh.geometry.height
@@ -168,7 +195,7 @@ def save_mpg_torus(history, name, index=None,key = None, delete_images=True):
     ax.set_xlim(minx - 0.2 * w, maxx + 0.2 * w)
     ax.set_ylim(miny - 0.2 * h, maxy + 0.2 * h)
     ax.set_aspect(1)
-    plt.ion()
+    if savefile is None: plt.ion()
     sns.set_style('white')
     ax.set_axis_off()
     ax.set_autoscale_on(False)
@@ -208,13 +235,15 @@ def save_mpg_torus(history, name, index=None,key = None, delete_images=True):
 
 
 
-def animate_torus(history, key = None, heatmap=None):
+def animate_torus(history, key = None, heat_maps=None, savefile=None, index=None, delete_images=True,imagedir='images'):
     """view animation of tissue history with torus geometry
     args: 
     --------------- 
     history: list of tissue objects
     key: (str) color code cells by key. must match a tissue.properties key, e.g. type, ancestors
     """
+    if not os.path.exists(imagedir): # if the outdir doesn't exist create it
+         os.makedirs(imagedir)
     width,height = history[0].mesh.geometry.width,history[0].mesh.geometry.height
     plt.ion()
     fig = plt.figure()
@@ -228,28 +257,36 @@ def animate_torus(history, key = None, heatmap=None):
     ax.set_axis_off()
     ax.set_autoscale_on(False)
     plot = []
+    if savefile is not None:
+        frames=[]
+        i = 0
     if key is not None:
         key_max = max((max(tissue.properties[key]) for tissue in history))
         if key_max>6:
             palette = np.array(sns.color_palette("husl", key_max+1))
             np.random.shuffle(palette)
         else: palette = np.array(current_palette)
-        for tissue in history:
-            try:
-                for c in ax.collections:
-                    c.remove()
-            except TypeError: pass
-            torus_plot(tissue,palette,key,ax=ax)
-            plt.pause(0.001)
-    
-    else:
-        for tissue in history:
-            try:
-                for c in ax.collections:
-                    c.remove()
-            except TypeError: pass
-            torus_plot(tissue,ax=ax)
-            plt.pause(0.001)#
+    else: palette = np.array(current_palette)
+    for i,tissue in enumerate(history):
+        if heat_maps is not None:
+            heat_map = {key:val if key!='data' else val[i] for key,val in heat_maps.iteritems()}
+            if i>=1: heat_map['show_cbar']=None
+        try:
+            for c in ax.collections:
+                c.remove()
+        except TypeError: pass
+        torus_plot(tissue,palette,key=key,heat_map=heat_map,ax=ax,fig=fig,animate=True)
+        if savefile is not None:
+            frame="%s/image%05i.png" % (imagedir,i)
+            fig.savefig(frame,dpi=500)
+            frames.append(frame)
+            i+=1
+        else: plt.pause(0.001)
+    if savefile is not None:
+        if index is not None: savefile += str(index)
+        os.system("mencoder 'mf://%s/image*.png' -mf type=png:fps=20 -ovc lavc -lavcopts vcodec=wmv2 -oac copy  -o %s.mpg" %(imagedir,savefile))
+        if delete_images:
+            for frame in frames: os.remove(frame)
 
 
 

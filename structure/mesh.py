@@ -230,12 +230,19 @@ class Mesh(object):
         vertices = [circumcenter(self.centres[i],*self.centres[pair]) for pair in neighbour_pairs]
         edge_lengths = np.array([self.edge_length_ij(j,neighbour_pairs,vertices) for j in self.neighbours[i]])
         return edge_lengths
+    
+    def voronoi_vertices(self,i):
+        neighbour_pairs = np.array([sorted([j,k]) for j in self.neighbours[i] for k in self.neighbours[j] if (k!=i and k in self.neighbours[i])])
+        neighbour_pairs = np.unique(neighbour_pairs,axis=0)
+        vertices = [circumcenter(self.centres[i],*self.centres[pair]) for pair in neighbour_pairs]
+        return vertices
         
     def edge_length_ij(self,j,neighbour_pairs_of_i,vertices_of_i):
         vertex_id_locations = np.where(neighbour_pairs_of_i==j)
-        edge_vector = np.array(vertices_of_i[vertex_id_locations[0][1]])-np.array(vertices_of_i[vertex_id_locations[1][1]])
+        edge_vector = np.array(vertices_of_i[vertex_id_locations[0][0]])-np.array(vertices_of_i[vertex_id_locations[0][1]])
         return (edge_vector[0]**2+edge_vector[1]**2)**0.5  
-        
+
+       
         
 class MeshNoArea(Mesh):
     def __init__(self,centres,geometry):

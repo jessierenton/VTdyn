@@ -106,6 +106,6 @@ def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False
             tissue.properties['type'][rand.choice(N*N,size=mutant_num,replace=False)]=1
         if ancestors is not None: tissue.properties['ancestor'] = np.arange(N*N,dtype=int)
         tissue.properties['age_of_death'] = death_function_poisson(N*N,rand,T_D=T_D)+tissue.age #add age of death to initial cell age 
-    if save_events: history = run_save_events(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,store_dead=store_dead,save_events=save_events,T_D=T_D,**kwargs),timend/dt)
-    else: history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,store_dead=store_dead,T_D=T_D,stress_threshold=stress_threshold,N_limit=Nlimit,**kwargs),timend/dt,timestep/dt)
+    if save_events: history = run_save_events(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,store_dead=store_dead,save_events=save_events,T_D=T_D,stress_threshold=stress_threshold,N_limit=N_limit,**kwargs),timend/dt)
+    else: history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,store_dead=store_dead,T_D=T_D,stress_threshold=stress_threshold,N_limit=N_limit,**kwargs),timend/dt,timestep/dt)
     return history

@@ -65,8 +65,11 @@ class Tissue(object):
         """remove a cell (or cells) from tissue. if storing dead cell ids need arg mother=True if cell is being removed
         following division, false otherwise. can be list."""
         if self.store_dead:
-            self.divided_cells.extend(self.cell_ids[idx_list[mother]])
-            self.extruded_cells.extend(self.cell_ids[idx_list[~mother]])
+            if mother is True: self.divided_cells.extend(self.cell_ids[idx_list])
+            elif mother is False: self.extruded_cells.extend(self.cell_ids[idx_list])     
+            else:
+                self.divided_cells.extend(self.cell_ids[idx_list[mother]])
+                self.extruded_cells.extend(self.cell_ids[idx_list[~mother]])
         self.mesh.remove(idx_list)
         self.cell_ids = np.delete(self.cell_ids,idx_list)
         self.age = np.delete(self.age,idx_list)

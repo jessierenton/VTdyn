@@ -13,8 +13,8 @@ from optparse import OptionParser
 def run_single(i,stress_threshold,T_D,outdir=None,seed=None,return_value="h"):
     rand = np.random.RandomState(seed)
     history = lib.run_simulation(simulation,l,timestep,timend,rand,progress_on=options.progress_on,til_fix=options.til_fix,
-                init_time=None,save_areas=False,store_dead=True,save_events=options.save_events,T_D=T_D,ancestors=options.ancestors,
-                stress_threshold=stress_threshold)
+                init_time=init_time,save_areas=False,store_dead=True,save_events=options.save_events,T_D=T_D,ancestors=options.ancestors,
+                stress_threshold=stress_threshold,N_limit=N_limit)
     if outdir is not None:
         data.save_stress(history,outdir,index=i)
         data.save_N_cell(history,outdir,index=i)
@@ -63,7 +63,9 @@ parser.add_option("-P","--parameters",type="str", dest="parameter_file",metavar=
 l = 10 # population size N=l*l
 timend = float(args[0]) # simulation time (hours)
 timestep = 0.5 # time intervals to save simulation history
-T_D = 20.
+T_D = 17.
+init_time=10.
+N_limit=1000
 
 simulation = lib.simulation_stress_dependent
 if options.repeats is None: 

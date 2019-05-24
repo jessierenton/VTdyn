@@ -64,7 +64,7 @@ def simulation_constant_pop_size(tissue,dt,N_steps,stepsize,rand,til_fix=False,p
         if not save_events or (len(births)!=0 or len(deaths)!=0): yield tissue 
         else: yield None
 
-def simulation_stress_dependent(tissue,dt,N_steps,stepsize,rand,til_fix=False,progress_on=False,store_dead=False,save_events=False,T_D=T_D,stress_threshold=np.inf,**kwargs):
+def simulation_stress_dependent(tissue,dt,N_steps,stepsize,rand,til_fix=False,progress_on=False,store_dead=False,save_events=False,T_D=T_D,stress_threshold=np.inf,N_limit=np.inf,**kwargs):
     step = 0.
     complete = False
     properties = tissue.properties
@@ -74,6 +74,8 @@ def simulation_stress_dependent(tissue,dt,N_steps,stepsize,rand,til_fix=False,pr
             print_progress(step,N_steps)
             step += 1
         N=len(tissue)
+        if N == 0 or N>=N_limit: 
+            break
         mesh.move_all(tissue.dr(dt))
         births = np.where(properties['cycle_length']<=tissue.age)[0]
         births = [mother for mother in births if tissue.cell_stress(mother) < stress_threshold]
@@ -86,10 +88,11 @@ def simulation_stress_dependent(tissue,dt,N_steps,stepsize,rand,til_fix=False,pr
             tissue.remove(deaths,False)
         tissue.update(dt)
         if til_fix: complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0 
-        if not save_events or (len(births)!=0 or len(deaths)!=0): yield tissue 
+        if not save_events or (len(births)!=0 or len(deaths)!=0): 
+            yield tissue 
         else: yield None
 
-def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False,mutant_num=1,ancestors=None,save_areas=False,store_dead=False,tissue=None,force=None,save_events=False,T_D=T_D,stress_threshold=np.inf,**kwargs):
+def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False,mutant_num=1,ancestors=None,save_areas=False,store_dead=False,tissue=None,force=None,save_events=False,T_D=T_D,stress_threshold=np.inf,N_limit=np.inf,**kwargs):
     if tissue is None:
         if force is None: force = BasicSpringForceNoGrowth()
         tissue = init.init_tissue_torus(N,N,0.01,force,rand,save_areas=save_areas,store_dead=store_dead)
@@ -104,5 +107,5 @@ def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False
         if ancestors is not None: tissue.properties['ancestor'] = np.arange(N*N,dtype=int)
         tissue.properties['age_of_death'] = death_function_poisson(N*N,rand,T_D=T_D)+tissue.age #add age of death to initial cell age 
     if save_events: history = run_save_events(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,store_dead=store_dead,save_events=save_events,T_D=T_D,**kwargs),timend/dt)
-    else: history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,store_dead=store_dead,T_D=T_D,stress_threshold=stress_threshold,**kwargs),timend/dt,timestep/dt)
+    else: history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,store_dead=store_dead,T_D=T_D,stress_threshold=stress_threshold,N_limit=Nlimit,**kwargs),timend/dt,timestep/dt)
     return history

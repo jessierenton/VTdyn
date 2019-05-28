@@ -83,7 +83,7 @@ def save_info(history,outdir,index=0,**kwargs):
     """saves import info and parameters for a simulation"""
     timestep = history[1].time-history[0].time
     timend = history[-1].time
-    with open(outdir+'/info_%03d', 'w') as f:
+    with open(outdir+'/info_%03d'%index, 'w') as f:
         f.write('timestep = %.2f, simulation length = %.1f (hours)\n'%(timestep,timend))
         f.write('initial population size = %d \n'%len(history[0]))
         for key,(val,fmt) in kwargs.iteritems():

@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.spatial import Delaunay, Voronoi, voronoi_plot_2d, ConvexHull
 import copy
+import os
 
 def polygon_area(points):
     n_p = len(points)
@@ -61,6 +62,9 @@ class Torus(Geometry):
         """width and height of periodicity"""
         self.width = width
         self.height = height
+    
+    def __str__(self):
+        return 'torus: width=%.5f, height=%.5f'%(self.width,self.height)
         
     def periodise(self,coords):
         half_width, half_height = self.width/2., self.height/2.
@@ -161,6 +165,13 @@ class Mesh(object):
     
     def __len__(self):
         return self.N_mesh
+    
+    def write(self,outdir):
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+        np.savetxt(outdir+'/centres',self.centres)
+        with open(outdir+'/geometry','w') as f:
+            f.write(str(self.geometry))
     
     def copy(self):
         """create a copy of Mesh object"""

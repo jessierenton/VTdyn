@@ -112,7 +112,7 @@ def create_axes(tissue):
     return fig,ax
     
 def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None,animate=False,
-                heat_map=None,plot_vals=None):
+                heat_map=None,plot_vals=None,textcolor='black'):
     """plot tissue object with torus geometry
     args
     ---------------
@@ -165,20 +165,20 @@ def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show
     if cell_ids:
         ids = tissue.cell_ids
         for i, coords in enumerate(tissue.mesh.centres):
-            ax.text(coords[0],coords[1],str(ids[i]))
+            ax.text(coords[0],coords[1],str(ids[i]),color=textcolor)
     if mesh_ids:
         for i, coords in enumerate(tissue.mesh.centres):
-            ax.text(coords[0],coords[1],str(i),color='red')
+            ax.text(coords[0],coords[1],str(i),color=textcolor)
     if areas:
         for area, coords in zip(tissue.mesh.areas,tissue.mesh.centres):
-            ax.text(coords[0],coords[1],'%.2f'%area)
+            ax.text(coords[0],coords[1],'%.2f'%area,color=textcolor)
     if key_label is True:
         for id, coords in zip(tissue.properties[key],tissue.mesh.centres):
-            ax.text(coords[0],coords[1],str(id))
+            ax.text(coords[0],coords[1],str(id),color=textcolor)
     if plot_vals is not None:
         data,fmt = plot_vals[0],plot_vals[1]
         for val,coords in zip(data,tissue.mesh.centres):
-            ax.text(coords[0],coords[1],fmt%val)
+            ax.text(coords[0],coords[1],fmt%val,color=textcolor)
     if boundary: 
         ax.add_patch(patches.Rectangle((-width/2,-height/2),width,height,fill=False,linewidth=1.5))
     if not animate: plt.show()

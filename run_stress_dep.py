@@ -30,7 +30,7 @@ def multiple_runs(repeats,parameters,outdir=None):
     num_pvals = len(parameters)
     if outdir[-1]!='/': outdir+='/'
     pool = mp.Pool(mp.cpu_count(),maxtasksperchild=1000)     
-    args = [(i,stress_threshold,T_D,outdir+"/Td%.1f_st%.1f"%(T_D,stress_threshold)) 
+    args = [(i,stress_threshold,T_D,outdir+"/Td%.1f_pc%.1f"%(T_D,stress_threshold)) 
                 for stress_threshold,T_D in parameters for i in range(repeats)]
     [f for f in pool.imap(run_single_for_parallel,args)]
     

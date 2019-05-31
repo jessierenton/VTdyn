@@ -65,7 +65,7 @@ timend = float(args[0]) # simulation time (hours)
 timestep = 0.5 # time intervals to save simulation history
 T_D = 17.
 init_time=10.
-N_limit=1000
+N_limit=500
 
 simulation = lib.simulation_stress_dependent
 if options.repeats is None: 

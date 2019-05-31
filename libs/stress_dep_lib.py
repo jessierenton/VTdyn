@@ -74,7 +74,7 @@ def simulation_stress_dependent(tissue,dt,N_steps,stepsize,rand,til_fix=False,pr
             print_progress(step,N_steps)
             step += 1
         N=len(tissue)
-        if N == 0 or N>=N_limit: 
+        if N <10 or N>=N_limit: 
             break
         mesh.move_all(tissue.dr(dt))
         births = np.where(properties['cycle_length']<=tissue.age)[0]

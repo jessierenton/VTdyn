@@ -10,11 +10,23 @@ from structure.cell import Tissue, BasicSpringForceNoGrowth
 import sys
 from optparse import OptionParser
 
+def full_traceback(func):
+    import traceback, functools
+    @functools.wraps(func)
+    def full_traceback_wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            msg = "{}\n\nOriginal {}".format(e, traceback.format_exc())
+            raise type(e)(msg)
+    return full_traceback_wrapper
+
 def run_single(i,stress_threshold,T_D,outdir=None,seed=None,return_value="h"):
     rand = np.random.RandomState(seed)
     history = lib.run_simulation(simulation,l,timestep,timend,rand,progress_on=options.progress_on,til_fix=options.til_fix,
                 init_time=init_time,save_areas=False,store_dead=True,save_events=options.save_events,T_D=T_D,ancestors=options.ancestors,
                 stress_threshold=stress_threshold,N_limit=N_limit)
+    raise MemoryError('test')
     if outdir is not None:
         data.save_stress(history,outdir,index=i)
         data.save_N_cell(history,outdir,index=i)
@@ -23,16 +35,20 @@ def run_single(i,stress_threshold,T_D,outdir=None,seed=None,return_value="h"):
             "cell death": ("poisson (mean=%.1f)"%T_D,"%s")})
     if return_value == "h": return history
 
+@full_traceback
 def run_single_for_parallel(args):
     return run_single(*args)
 
 def multiple_runs(repeats,parameters,outdir=None):  
     num_pvals = len(parameters)
-    if outdir[-1]!='/': outdir+='/'
+    if outdir is not None and outdir[-1]!='/': outdir+='/'
     pool = mp.Pool(mp.cpu_count(),maxtasksperchild=1000)     
-    args = [(i,stress_threshold,T_D,outdir+"/Td%.1f_pc%.1f"%(T_D,stress_threshold)) 
+    args = [(i,stress_threshold,T_D,outdir+"/Td%.1f_pc%.1f"%(T_D,stress_threshold))
+                if outdir is not None else (i,stress_threshold,T_D)
                 for stress_threshold,T_D in parameters for i in range(repeats)]
     [f for f in pool.imap(run_single_for_parallel,args)]
+    pool.close()
+    pool.join()
     
 parser = OptionParser()
 parser.set_defaults(save_events=False,progress_on=False,til_fix=False,seed=None,ancestors=False,outdir=None,

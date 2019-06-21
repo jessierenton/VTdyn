@@ -54,8 +54,13 @@ class Tissue(object):
     
     def copy(self):
         """create a copy of Tissue"""
-        return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(),self.mother.copy(),self.properties.copy(),self.extruded_cells[:],self.divided_cells[:],self.store_dead,self.time)
-            
+        if self.store_dead:
+            return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(), self.mother.copy(),self.properties.copy(),self.extruded_cells[:],self.divided_cells[:], self.store_dead,self.time)
+        else: return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(), self.mother.copy(),self.properties.copy(),time=self.time)
+    
+	def mesh_id(self,cell_id):
+		return np.where(self.mesh.ids==cell_id)[0]
+        
     def update(self,dt):
         self.mesh.update()
         self.age += dt      
@@ -110,7 +115,8 @@ class Tissue(object):
         where F^rep_ij is the repulsive force between i and j, i.e. F^rep_ij=F_ij if Fij is positive, 0 otherwise;
         u_ij is the unit vector between the i and j cell centres and l_ij is the length of the edge between cells i and j"""     
         edge_lengths = self.mesh.edge_lengths(i)
-        repulsive_forces = self.Force.force_i_mag_repulsive(self,i)
+        repulsive_forces = self.Force.force_ij(self,i)
+        repulsive_forces[repulsive_forces<0]=0
         return sum(repulsive_forces/edge_lengths)    
         
 class Force(object):
@@ -146,13 +152,12 @@ class BasicSpringForceNoGrowth(BasicSpringForceTemp):
         else: pref_sep = (tissue.mother[n_list]==tissue.mother[i])*((L0-EPS)*tissue.age[i]+EPS-L0) +L0
         return (self.MU*vecs*np.repeat((distances-pref_sep)[:,np.newaxis],2,axis=1)).sum(axis=0)
     
-    def force_i_mag_repulsive(self,tissue,i):
+    def force_ij(self,tissue,i):
         distances,vecs,n_list = tissue.mesh.distances[i],tissue.mesh.unit_vecs[i],tissue.mesh.neighbours[i]
         if tissue.age[i] >= 1.0 or tissue.mother[i] == -1: pref_sep = L0
         else: pref_sep = (tissue.mother[n_list]==tissue.mother[i])*((L0-EPS)*tissue.age[i]+EPS-L0) +L0
-        repulsive_forces = self.MU*(distances-pref_sep) 
-        repulsive_forces[repulsive_forces<0]=0
-        return repulsive_forces
+        forces = self.MU*(distances-pref_sep) 
+        return forces
 
 class BasicSpringForceGrowth(BasicSpringForceTemp):
 

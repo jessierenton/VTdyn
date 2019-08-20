@@ -48,7 +48,7 @@ def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_constants):
 #         mesh.move_all(tissue.dr(dt))
 #         if rand.rand() < (1./T_D)*N*dt:
 #             fitnesses = recalculate_fitnesses(tissue.mesh.neighbours,properties['type'],DELTA,game,game_constants)
-#             mother = np.where(np.random.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]
+#             mother = np.where(rand.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]
 #             tissue.add_daughter_cells(mother,rand)
 #             r = rand.rand()
 #             if r < mutation_rate**2: properties['type'] = np.append(properties['type'],rand.randint(0,2,2))
@@ -75,7 +75,7 @@ def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_constants):
 #         mesh.move_all(tissue.dr(dt))
 #         if rand.rand() < (1./T_D)*N*dt:
 #             fitnesses = recalculate_fitnesses(tissue.mesh.neighbours,properties['type'],DELTA,game,game_constants)
-#             mother = np.where(np.random.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]
+#             mother = np.where(rand.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]
 #             tissue.add_daughter_cells(mother,rand)
 #             r = rand.rand()
 #             if r < mutation_rate**2: properties['type'] = np.append(properties['type'],rand.randint(0,2,2))
@@ -101,7 +101,7 @@ def simulation_decoupled_update(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_
         mesh.move_all(tissue.dr(dt))
         if rand.rand() < (1./T_D)*N*dt:
             fitnesses = recalculate_fitnesses(tissue.mesh.neighbours,properties['type'],DELTA,game,game_constants)
-            mother = np.where(np.random.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]   
+            mother = np.where(rand.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]   
             tissue.add_daughter_cells(mother,rand)
             properties['type'] = np.append(properties['type'],[properties['type'][mother]]*2)
             tissue.remove(mother)
@@ -185,6 +185,7 @@ def run_simulation(simulation,N,timestep,timend,rand,DELTA,game,constants,init_t
     if init_time is not None:    
         tissue = run(tissue, simulation(tissue,dt,init_time/dt,timestep/dt,rand,DELTA,game,constants,til_fix=False),10./dt,timestep/dt)[-1]
         tissue.reset()
+    tissue.properties['ancestors']= np.arange(100,dtype=int)
     tissue.properties['type'][rand.choice(N*N,size=mutant_num,replace=False)]=1
     history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,constants,til_fix),timend/dt,timestep/dt)
     return history

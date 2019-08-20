@@ -10,7 +10,7 @@ from descartes.patch import PolygonPatch
 import os
 
 DEFAULT_PALETTE = np.array(sns.color_palette())
-
+beige = '#F4EDD6'
 #functions for plotting and animating tissue objects/histories
 
 def set_heatmap_colours(heat_map,palette=None,return_palette_only=False):
@@ -51,7 +51,7 @@ def plot_colour_bar(fig,palette,bin_bounds):
     for r in rects:
         ax.add_patch(r)
             
-def plot_tri_torus(tissue,fig=None,ax=None,time = None,label=False,palette=DEFAULT_PALETTE):
+def plot_tri_torus(tissue,fig=None,ax=None,time = None,label=False,node_colour='k',line_colour=DEFAULT_PALETTE[3],lw=2):
     """plot Delaunay triangulation of a tissue object (i.e. cell centres and neighbour connections) with torus geometry"""
     width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
     if ax is None: 
@@ -66,15 +66,15 @@ def plot_tri_torus(tissue,fig=None,ax=None,time = None,label=False,palette=DEFAU
     centres = tissue.mesh.centres
     centres_3x3 = np.vstack([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]])
     tri = Delaunay(centres_3x3).simplices  
-    plt.triplot(centres_3x3[:,0], centres_3x3[:,1], tri.copy(),color=palette[3])
-    plt.plot(centres_3x3[:,0], centres_3x3[:,1], 'o',color = 'black')
+    plt.triplot(centres_3x3[:,0], centres_3x3[:,1], tri.copy(),color=line_colour,lw=lw)
+    plt.plot(centres_3x3[:,0], centres_3x3[:,1], 'o',color = node_colour)
     if label:
         for i, coords in enumerate(tissue.mesh.centres):
             plt.text(coords[0],coords[1],str(i))
     if time is not None:
         lims = plt.axis()
         plt.text(lims[0]+0.1,lims[3]+0.1,'t = %.2f hr'%time)
-    plt.show()
+    return ax
 
 def plot_centres(tissue,ax=None,time = None,label=False,palette=DEFAULT_PALETTE):
     width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
@@ -97,9 +97,9 @@ def plot_centres(tissue,ax=None,time = None,label=False,palette=DEFAULT_PALETTE)
         plt.text(lims[0]+0.1,lims[3]+0.1,'t = %.2f hr'%time)
     plt.show()
 
-def create_axes(tissue):
+def create_axes(tissue,figsize=None):
     width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
-    fig = plt.figure()
+    fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111)
     minx, miny, maxx, maxy = -width/2,-height/2,width/2,height/2
     w, h = maxx - minx, maxy - miny
@@ -112,7 +112,7 @@ def create_axes(tissue):
     return fig,ax
     
 def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None,animate=False,
-                heat_map=None,plot_vals=None,textcolor='black'):
+                heat_map=None,plot_vals=None,textcolor='black',figsize=None,lw=2.5,edgecolor='k'):
     """plot tissue object with torus geometry
     args
     ---------------
@@ -144,21 +144,23 @@ def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show
                 for region in (np.array(vor.regions)[np.array(vor.point_region)])[mask]])
     
     if ax is None: 
-        fig,ax=create_axes(tissue)
+        fig,ax=create_axes(tissue,figsize)
     ax.set_xticks([])
     ax.set_yticks([])
     if key is None and colours is None and heat_map is None:
-        ax.add_collection(PatchCollection([PolygonPatch(p,linewidth=2.5,edgecolor='black') for p in mp],match_original=True))
+        if palette is not None: c = palette[0]
+        else: c = beige
+        ax.add_collection(PatchCollection([PolygonPatch(p,linewidth=lw,edgecolor=edgecolor,facecolor=c) for p in mp],match_original=True))
     else:
         if key is not None:
-            if palette is not None: palette = set_key_palette(key,tissue=tissue)
+            if palette is None: palette = set_key_palette(key,tissue=tissue)
             colours = palette[tissue.properties[key]]         
         elif heat_map is not None:
             colours,palette,bin_bounds = set_heatmap_colours(heat_map,palette)
             if 'show_cbar' in heat_map:
                 if heat_map['show_cbar']:
                     plot_colour_bar(fig,palette,bin_bounds)
-        coll = PatchCollection([PolygonPatch(p,facecolor = c,linewidth=2.5,edgecolor='black') for p,c in zip(mp,colours)],match_original=True)
+        coll = PatchCollection([PolygonPatch(p,facecolor = c,linewidth=lw,edgecolor=edgecolor) for p,c in zip(mp,colours)],match_original=True)
         ax.add_collection(coll) 
     if show_centres: 
         plt.plot(centres[:,0], centres[:,1], 'o',color='black')
@@ -181,7 +183,7 @@ def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show
             ax.text(coords[0],coords[1],fmt%val,color=textcolor)
     if boundary: 
         ax.add_patch(patches.Rectangle((-width/2,-height/2),width,height,fill=False,linewidth=1.5))
-    if not animate: plt.show()
+    if not animate: return ax
 
 def animate_torus(history, key = None, heat_map=None, savefile=None, index=None, delete_images=True,imagedir='images'):
     """view animation of tissue history with torus geometry
@@ -228,7 +230,30 @@ def animate_torus(history, key = None, heat_map=None, savefile=None, index=None,
         if delete_images:
             for frame in frames: os.remove(frame)
 
+def plot_spring(r1,r2,ax,colour='k',lw=1.5):
+    x,y=r2-r1
+    x0,y0 = r1
+    L = np.sqrt(x**2+y**2)
+    spring_radius, number_turns = 0.05,12
+    Np = 1000 #number points to plot
+    pad = 100
+    w = np.linspace(0,L,Np)
+    xp=np.zeros(Np)
+    xp[pad:-pad] = spring_radius * np.sin(2*np.pi*number_turns*w[pad:-pad]/L)
+    R = np.array([[y/L,-x/L],[x/L,y/L]]).T
+    xs,ys = np.matmul(R,np.vstack((xp,w)))
+    xs += x0
+    ys += y0
+    ax.plot(xs,ys,c=colour,lw=lw)
 
+def plot_springs(tissue,ax,color='k'):
+    mesh = tissue.mesh
+    for i in range(len(tissue)):
+        r1 = mesh.centres[i]
+        for j,r2 in zip(mesh.neighbours,mesh.centres):
+            if i<j:
+                plot_spring(r1,r2,ax,color)
+                
 
 #plotting functions for a PLANAR geometry tissue object IN DEVELOPMENT   
     
@@ -352,7 +377,7 @@ def animate_torus(history, key = None, heat_map=None, savefile=None, index=None,
 #     plt.axis('scaled')
 #     ax.set_xlim(xmin,xmax)
 #     ax.set_ylim(ymin,ymax)
-#     fig.set_size_inches(6, 6)
+#     fig.set_size_figsize(6, 6)
 #     ax.set_autoscale_on(False)
 #     plot = []
 #     if key is not None:

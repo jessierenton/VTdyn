@@ -8,3 +8,4 @@ interaction_data/wints_CD
 *.err
 *.log
 log/
+*.pdf

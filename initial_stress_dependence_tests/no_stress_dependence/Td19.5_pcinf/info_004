@@ -1,0 +1,5 @@
+timestep = 0.50, simulation length = 293.5 (hours)
+initial population size = 100 
+cell death = poisson (mean=19.5)
+cell cycle = delayed uniform (low=10, high=14)
+stress threshold = inf

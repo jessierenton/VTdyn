@@ -56,7 +56,7 @@ class Tissue(object):
         """create a copy of Tissue"""
         if self.store_dead:
             return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(), self.mother.copy(),self.properties.copy(),self.extruded_cells[:],self.divided_cells[:], self.store_dead,self.time)
-        else: return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(), self.mother.copy(),self.properties.copy(),time=self.time)
+        else: return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(), self.mother.copy(),copy.deepcopy(self.properties),time=self.time)
     
 	def mesh_id(self,cell_id):
 		return np.where(self.mesh.ids==cell_id)[0]
@@ -109,7 +109,7 @@ class Tissue(object):
     def dr(self,dt): 
         """calculate distance cells move due to force law in time dt"""  
         return (dt/ETA)*self.Force(self)
-
+    
     def cell_stress(self,i):
         """calculates the stress p_i on a single cell i according to the formula p_i = sum_j mag(F^rep_ij.u_ij)/l_ij
         where F^rep_ij is the repulsive force between i and j, i.e. F^rep_ij=F_ij if Fij is positive, 0 otherwise;
@@ -117,7 +117,12 @@ class Tissue(object):
         edge_lengths = self.mesh.edge_lengths(i)
         repulsive_forces = self.Force.force_ij(self,i)
         repulsive_forces[repulsive_forces<0]=0
-        return sum(repulsive_forces/edge_lengths)    
+        return sum(repulsive_forces/edge_lengths) 
+    
+    def tension_area_product(self,i):
+        distances = 0.5*self.mesh.distances[i]
+        forces = self.Force.force_ij(self,i)
+        return 0.5*sum(forces*distances)
         
 class Force(object):
     """Abstract force object"""

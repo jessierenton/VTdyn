@@ -120,9 +120,9 @@ class Tissue(object):
         return sum(repulsive_forces/edge_lengths) 
     
     def tension_area_product(self,i):
-        distances = 0.5*self.mesh.distances[i]
+        distances = self.mesh.distances[i]
         forces = self.Force.force_ij(self,i)
-        return 0.5*sum(forces*distances)
+        return -0.25*sum(forces*distances)
         
 class Force(object):
     """Abstract force object"""

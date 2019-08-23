@@ -36,8 +36,8 @@ def run_return_final_tissue(simulation,N_step):
 #------------------------------------------POISSON-BIRTH-DEATH----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-def CIP_step_function(val,threshold):
-    return np.heaviside(threshold-val,1)
+def step_function(val,threshold):
+    return np.heaviside(val-threshold,1)
 
 def G_to_S_transition(cycle_phases,tension_area_product,G_to_S_rate,dt,CIP_function,CIP_parameters,rand):
     num_G_cells = sum(1-cycle_phases)
@@ -58,7 +58,7 @@ def simulation_contact_inhibition(tissue,dt,N_steps,stepsize,rand,rates,CIP_para
     mesh = tissue.mesh
     death_rate,G_to_S_rate,S_to_div_rate = rates
     if CIP_function is None: 
-        CIP_function = CIP_step_function
+        CIP_function = step_function
     while not til_fix or not complete:
         event_occurred = False
         if progress_on: 

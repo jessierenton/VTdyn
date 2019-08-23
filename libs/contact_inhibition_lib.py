@@ -80,7 +80,7 @@ def simulation_contact_inhibition(tissue,dt,N_steps,stepsize,rand,rates,CIP_para
         N = len(tissue)
         if death_rate is not None:  
             if rand.rand() < N*death_rate*dt:
-                tissue.remove(rand.rand(N),False)   
+                tissue.remove(rand.randint(N),False)   
                 event_occurred = True   	
         tissue.update(dt)
         if til_fix: 

@@ -8,7 +8,7 @@ class Tissue(object):
     
     """Defines a tissue comprised of cells which can move, divide and be extruded"""
     
-    def __init__(self,mesh,force,cell_ids,next_id,age,mother,properties=None,extruded_cells=[],divided_cells=[],store_dead=False,time=0.):
+    def __init__(self,mesh,force,cell_ids,next_id,age,mother,properties=None,extruded_cells=None,divided_cells=None,store_dead=False,time=0.):
         """ Parameters:
         mesh: Mesh object
             defines cell locations and neighbour connections
@@ -35,8 +35,8 @@ class Tissue(object):
         self.properties = properties or {}
         self.store_dead = store_dead
         if store_dead:    
-            self.extruded_cells = extruded_cells
-            self.divided_cells = divided_cells
+            self.extruded_cells = extruded_cells or []
+            self.divided_cells = divided_cells or []
         self.time=time
         
         
@@ -66,15 +66,30 @@ class Tissue(object):
         self.age += dt      
         self.time += dt
     
+    def update_extruded_divided_lists(self,idx_list,mother):
+        if isinstance(idx_list,int):
+            if mother:
+                self.divided_cells.append((self.cell_ids[idx_list],self.age[idx_list],self.time))
+            else:
+                self.extruded_cells.append((self.cell_ids[idx_list],self.age[idx_list],self.time))  
+        else:
+            if mother is True:
+                divided_cells = [(cid,age,self.time) for cid,age in zip(self.cell_ids[idx_list],self.age[idx_list])]
+                self.divided_cells.extend(divided_cells)
+            elif mother is False: 
+                extruded_cells = [(cid,age,self.time) for cid,age in zip(self.cell_ids[idx_list],self.age[idx_list])]
+                self.extruded_cells.extend(extruded_cells)    
+            else:
+                divided_cells = [(cid,age,self.time) for cid,age in zip(self.cell_ids[idx_list[mother]],self.age[idx_list[mother]])]
+                extruded_cells = [(cid,age,self.time) for cid,age in zip(self.cell_ids[idx_list[~mother]],self.age[idx_list[~mother]])]
+                self.divided_cells.extend(divided_cells)
+                self.extruded_cells.extend(extruded_cells)
+    
     def remove(self,idx_list,mother=None):
         """remove a cell (or cells) from tissue. if storing dead cell ids need arg mother=True if cell is being removed
         following division, false otherwise. can be list."""
         if self.store_dead:
-            if mother is True: self.divided_cells.extend(self.cell_ids[idx_list])
-            elif mother is False: self.extruded_cells.extend(self.cell_ids[idx_list])     
-            else:
-                self.divided_cells.extend(self.cell_ids[idx_list[mother]])
-                self.extruded_cells.extend(self.cell_ids[idx_list[~mother]])
+             self.update_extruded_divided_lists(idx_list,mother)
         self.mesh.remove(idx_list)
         self.cell_ids = np.delete(self.cell_ids,idx_list)
         self.age = np.delete(self.age,idx_list)

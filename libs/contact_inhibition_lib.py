@@ -90,10 +90,11 @@ def simulation_contact_inhibition(tissue,dt,N_steps,stepsize,rand,rates,CIP_para
         else: yield
             
 
-def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False,progress_on=False,mutant_num=1,ancestors=None,cycle_phase=None,save_areas=False,store_dead=False,tissue=None,force=None,return_events=False,N_limit=np.inf,**kwargs):
+def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False,progress_on=False,mutant_num=1,ancestors=None,
+        cycle_phase=None,save_areas=False,store_dead=False,tissue=None,force=None,return_events=False,N_limit=np.inf,domain_size_multiplier=1.,**kwargs):
     if tissue is None:
         if force is None: force = BasicSpringForceNoGrowth()
-        tissue = init.init_tissue_torus(N,N,0.01,force,rand,save_areas=save_areas,store_dead=store_dead)
+        tissue = init.init_tissue_torus_with_multiplier(N,N,0.01,force,rand,domain_size_multiplier,save_areas=save_areas,store_dead=store_dead)
         if cycle_phase is not None:
             tissue.properties["cycle_phase"] = np.zeros(N*N,dtype=int)
         if init_time is not None: 
@@ -104,5 +105,5 @@ def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False
             tissue.properties['type'][rand.choice(N*N,size=mutant_num,replace=False)]=1
         if ancestors is not None: tissue.properties['ancestor'] = np.arange(N*N,dtype=int)
     if return_events: history = run_return_events(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,store_dead=store_dead,return_events=return_events,N_limit=N_limit,**kwargs),timend/dt)
-    else: history = run(tissue, simulation(dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,store_dead=store_dead,N_limit=N_limit,**kwargs),timend/dt,timestep/dt)
+    else: history = run(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,store_dead=store_dead,return_events=return_events,N_limit=N_limit,**kwargs),timend/dt,timestep/dt)
     return history

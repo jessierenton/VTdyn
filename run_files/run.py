@@ -9,7 +9,7 @@ from structure.cell import Tissue, BasicSpringForceNoGrowth
 """run a single voronoi tessellation model simulation"""
 
 l = 10 # population size N=l*l
-timend = 10 # simulation time (hours)
+timend = 20. # simulation time (hours)
 timestep = 1. # time intervals to save simulation history
 
 rand = np.random.RandomState()

@@ -55,7 +55,7 @@ class Tissue(object):
     def copy(self):
         """create a copy of Tissue"""
         if self.store_dead:
-            return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(), self.mother.copy(),self.properties.copy(),self.extruded_cells[:],self.divided_cells[:], self.store_dead,self.time)
+            return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(), self.mother.copy(),copy.deepcopy(self.properties),self.extruded_cells[:],self.divided_cells[:], self.store_dead,self.time)
         else: return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(), self.mother.copy(),copy.deepcopy(self.properties),time=self.time)
     
 	def mesh_id(self,cell_id):

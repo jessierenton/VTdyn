@@ -37,7 +37,7 @@ def init_tissue_torus_with_multiplier(N_cell_across,N_cell_up,noise,force,rand,m
     N = N_cell_across*N_cell_up
     if ages is None: ages = np.zeros(N,dtype=float)
     return cell.Tissue(init_mesh_torus(N_cell_across,N_cell_up,noise,rand,multiplier,save_areas=save_areas),force,np.arange(N),
-                N,ages,np.full(N,-1,dtype=int))
+                N,ages,np.full(N,-1,dtype=int),store_dead=store_dead)
     
     
     

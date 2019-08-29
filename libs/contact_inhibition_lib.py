@@ -43,7 +43,7 @@ def G_to_S_transition(cycle_phases,tension_area_product,G_to_S_rate,dt,CIP_funct
     num_G_cells = sum(1-cycle_phases)
     energies = np.array([tension_area_product(i) if phase==0 else np.inf
                             for i,phase in enumerate(cycle_phases)])
-    transitions = [rand.rand(len(energies))<G_to_S_rate*dt*CIP_function(energies,**CIP_parameters)]
+    transitions = rand.rand(len(energies))<G_to_S_rate*dt*CIP_function(energies,**CIP_parameters)
     if not np.any(transitions):
         return False
     else:

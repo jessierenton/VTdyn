@@ -20,11 +20,11 @@ DATA_SAVE_ROUTINES = (data.save_N_cell,data.save_cell_histories,data.save_cycle_
 DATA_SAVE_FIELDS = ["pop_size","division_history","extrusion_history","cycle_phases","density","energy",
                     "cell_seperation"]
 
-PARENTDIR = "CIP_data_fixed_cc_rates"
+PARENTDIR = "CIP_data_fixed_cc_rates_fixed_size"
 # if not os.path.exists(PARENTDIR): # if the folder doesn't exist create it
 #      os.makedirs(PARENTDIR)
 with open(PARENTDIR+'/info',"w") as f:
-    f.write('G_to_S_rate = %.3f\nS_to_div_rate = %.3f'%(G_TO_S_RATE,S_TO_DIV_RATE))
+    f.write('G_to_S_rate = %.3f\nS_to_div_rate\n = %.3f'%(G_TO_S_RATE,S_TO_DIV_RATE))
     f.write('initial cells = %3d'%(L*L))
 simulation = lib.simulation_contact_inhibition  #simulation routine imported from lib
 
@@ -41,11 +41,11 @@ def run_single(i,threshold,death_rate,domain_size_multiplier):
                 return_events=False,store_dead=True,N_limit=MAX_POP_SIZE,
                 domain_size_multiplier=domain_size_multiplier,
                 CIP_parameters=CIP_parameters,rates=rates)
-    outdir = PARENTDIR+'/DRate%.3f_Thresh%02.1f_DSMult%.1f'%(death_rate,threshold,domain_size_multiplier)
+    outdir = PARENTDIR+'/DRate%.3f_Thresh%02.1f'%(death_rate,threshold)
     # save_data(history,outdir,i)
     data.save_as_json(history,outdir,DATA_SAVE_FIELDS,{"threshold":threshold,"death_rate":death_rate,
                     "width":history[0].mesh.geometry.width,"height":history[0].mesh.geometry.height,
-                    "domain_multiplier":domain_size_multiplier},i)
+                    "domain_multiplier":domain_size_multiplier,"G_rate":G_TO_S_RATE,"S_rate":S_TO_DIV_RATE},i)
 
 def save_data(history,outdir,index,data_save_routines=DATA_SAVE_ROUTINES):
     for save in DATA_SAVE_ROUTINES:

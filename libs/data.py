@@ -238,7 +238,7 @@ def save_as_json(history,outfile,fields,parameters,index=0):
         if isinstance(value,np.ndarray):
             data[key] = value.tolist()
     data["parameters"]=parameters
-    with open(outfile+'%03d.json'%index,"w") as f:        
+    with open(outfile+'_%03d.json'%index,"w") as f:        
         json.dump(data,f,indent=4)
     
     

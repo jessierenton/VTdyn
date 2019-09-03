@@ -74,9 +74,14 @@ def average_data(raw_data,data_type,pkeys,pvalue):
     return np.mean(filtered_data_type,axis=0),np.std(filtered_data_type,axis=0)
     
 def get_parameter_tuples(raw_data,pkeys):
-    ptuples = [tuple([data['parameters'][pk] for pk in pkeys]) for data in raw_data]
-    ptuples = list(set(ptuples))
-    ptuples.sort(key=lambda t: [t[i] for i in range(len(pkeys))])
+    if isinstance(pkeys,str):
+        ptuples = [data['parameters'][pkeys] for data in raw_data]
+        ptuples = list(set(ptuples))
+        ptuples.sort()
+    else:
+        ptuples = [tuple([data['parameters'][pk] for pk in pkeys]) for data in raw_data]
+        ptuples = list(set(ptuples))
+        ptuples.sort(key=lambda t: [t[i] for i in range(len(pkeys))])
     return ptuples
         
 def get_averaged_data(raw_data,data_type,pkeys,filter_pkeys=None,filter_pvalue=None):

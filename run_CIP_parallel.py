@@ -8,6 +8,7 @@ from structure.global_constants import *
 import structure.initialisation as init
 from structure.cell import Tissue, BasicSpringForceNoGrowth
 import sys,os
+import itertools 
 
 L = 8 # population size N=l*l
 TIMEND = 1000. # simulation time (hours)
@@ -20,7 +21,11 @@ DATA_SAVE_ROUTINES = (data.save_N_cell,data.save_cell_histories,data.save_cycle_
 DATA_SAVE_FIELDS = ["pop_size","division_history","extrusion_history","cycle_phases","density","energy",
                     "cell_seperation"]
 
-PARENTDIR = "CIP_data_fixed_cc_rates_fixed_size"
+for d in DATA_SAVE_FIELDS:
+    if d not in data.FIELDS_DICT:
+        raise ValueError("not all data types are correct")
+
+PARENTDIR = "CIP_data_fixed_cc_rates_fixed_size_sweep"
 # if not os.path.exists(PARENTDIR): # if the folder doesn't exist create it
 #      os.makedirs(PARENTDIR)
 with open(PARENTDIR+'/info',"w") as f:
@@ -50,21 +55,16 @@ def run_single(i,threshold,death_rate,domain_size_multiplier):
 def save_data(history,outdir,index,data_save_routines=DATA_SAVE_ROUTINES):
     for save in DATA_SAVE_ROUTINES:
         save(history,outdir,index)
-
-
     
-    
-def run_parallel(paramfile,repeats):
+def run_parallel(threshold_vals,death_rate_vals,dsm_vals,idx):
     pool = Pool(cpu_count()-1,maxtasksperchild=1000)
-    parameters = np.loadtxt(paramfile)
-    args = [(i,threshold,death_rate,domain_size_multiplier) 
-                        for threshold,death_rate,domain_size_multiplier in parameters
-                        for i in range(repeats)]
+    args = list(zip())
+    args = [(idx,threshold,death_rate,domain_size_multiplier) 
+                for threshold,death_rate,domain_size_multiplier in itertools.product(threshold_vals,death_rate_vals,dsm_vals)]
     pool.map(run_single_unpack,args)
-
-paramfile = sys.argv[1]  
-repeats = int(sys.argv[2])  
-for d in DATA_SAVE_FIELDS:
-    if d not in data.FIELDS_DICT:
-        raise ValueError("not all data types are correct")
-run_parallel(paramfile,repeats)           
+threshold_vals = np.arange(-10,60,5)
+death_rate_vals = np.arange(0.01,0.085,0.005)
+domain_size_multiplier = 1.5
+dsm_vals=[domain_size_multiplier]
+idx = int(sys.argv[1])
+run_parallel(threshold_vals,death_rate_vals,dsm_vals,idx)           

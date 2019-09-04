@@ -60,6 +60,8 @@ def plot_equilibrium_vs_param(raw_data,data_type,pkey,start,filter_pkeys=None,fi
                                 show_error=False,color=None,label=None,logx=False,logy=False):
     data = sd.filter_data(raw_data,filter_pkeys,filter_pvalue)
     params,eqm_data,std = sd.get_equilibrium_data(data,data_type,pkey)
+    if eqm_data.ndim==2:
+        eqm_data,std = eqm_data[0],std[0]
     if logx: params = np.log(np.array(params))
     if logy: eqm_data,std = np.log(eqm_data),np.log(std)
     if ax is None:

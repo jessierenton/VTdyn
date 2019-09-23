@@ -8,7 +8,7 @@ from structure.cell import Tissue, BasicSpringForceNoGrowth
 
 """run a single voronoi tessellation model simulation"""
 
-l = 8 # population size N=l*l
+l = 10 # population size N=l*l
 timend = 10. # simulation time (hours)
 timestep = 1. # time intervals to save simulation history
 
@@ -16,8 +16,8 @@ rand = np.random.RandomState()
 
 simulation = lib.simulation_contact_inhibition  #simulation routine imported from lib
 CIP_parameters = {'threshold':10.}
-rates = (0.0,0.5,0.1) #deaths_rate,G_to_S_rate,S_to_div_rate
-domain_size_multiplier=1.3
+rates = (0.04,0.5,0.1) #deaths_rate,G_to_S_rate,S_to_div_rate
+domain_size_multiplier=1.5
 
 history = lib.run_simulation(simulation,l,timestep,timend,rand,progress_on=True,
             init_time=None,til_fix=False,save_areas=False,cycle_phase=True,

@@ -7,14 +7,15 @@ def cell_pressure(tissue,i,pressure_type):
         edge_lengths = tissue.mesh.edge_lengths(i)
         if pressure_type == "virial":
             return virial_pressure(tissue,i)
-        elif pressure_type == "repulsive":
-            forces = tissue.Force.force_ij(tissue,i)
-            forces[forces<0] = 0
-        elif pressure_type == "magnitude":
-            forces = np.fabs(tissue.Force.force_ij(tissue,i))
-        elif pressure_type == "full":
-            forces = tissue.Force.force_ij(tissue,i)
-        return sum(forces/edge_lengths)    
+        else:
+            if pressure_type == "repulsive":
+                forces = tissue.Force.force_ij(tissue,i)
+                forces[forces<0] = 0
+            elif pressure_type == "magnitude":
+                forces = np.fabs(tissue.Force.force_ij(tissue,i))
+            elif pressure_type == "full":
+                forces = tissue.Force.force_ij(tissue,i)
+            return sum(forces/edge_lengths)    
 
 def virial_pressure(tissue,i):
     area = tissue.mesh.areas[i]

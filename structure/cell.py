@@ -8,7 +8,7 @@ class Tissue(object):
     
     """Defines a tissue comprised of cells which can move, divide and be extruded"""
     
-    def __init__(self,mesh,force,cell_ids,next_id,age,mother,properties=None,extruded_cells=None,divided_cells=None,store_dead=False,time=0.):
+    def __init__(self,mesh,force,cell_ids,next_id,age,mother,properties=None,save_cell_histories=False,cell_histories=None,time=0.):
         """ Parameters:
         mesh: Mesh object
             defines cell locations and neighbour connections
@@ -33,10 +33,9 @@ class Tissue(object):
         self.age = age
         self.mother = mother
         self.properties = properties or {}
-        self.store_dead = store_dead
-        if store_dead:    
-            self.extruded_cells = extruded_cells or []
-            self.divided_cells = divided_cells or []
+        self.save_cell_histories = save_cell_histories
+        if save_cell_histories:
+            self.cell_histories = cell_histories or {}
         self.time=time
         
         
@@ -50,12 +49,13 @@ class Tissue(object):
         self.next_id = N
         self.mother = -np.ones(N,dtype=int)
         self.time = 0.
+        self.cell_histories = []
         
     
     def copy(self):
         """create a copy of Tissue"""
-        if self.store_dead:
-            return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(), self.mother.copy(),copy.deepcopy(self.properties),self.extruded_cells[:],self.divided_cells[:], self.store_dead,self.time)
+        if self.save_cell_histories:
+            return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(), self.mother.copy(),copy.deepcopy(self.properties),self.save_cell_histories, self.cell_histories,self.time)
         else: return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(), self.mother.copy(),copy.deepcopy(self.properties),time=self.time)
     
 	def mesh_id(self,cell_id):
@@ -66,6 +66,25 @@ class Tissue(object):
         self.age += dt      
         self.time += dt
     
+    def update_cell_histories(self,idx_list,divided):
+        if self.cell_histories == {}:
+            self.cell_histories.update({'time':[],'cell_ids':[],'age':[],'divided':[]}) 
+            self.cell_histories.update({key:[] for key in self.properties.keys()})
+        for key,valist in self.cell_histories.iteritems():
+            if key == 'time':
+                try:
+                    valist.extend([self.time]*len(idx_list))
+                except TypeError:
+                    valist.append(self.time)
+            elif key == 'cell_ids':
+                _add_to_list(valist,self.cell_ids[idx_list])
+            elif key == 'age':
+                _add_to_list(valist,self.age[idx_list])
+            elif key == 'divided':
+                _add_to_list(valist,divided)
+            else:
+                _add_to_list(valist,self.properties[key][idx_list])
+        
     def update_extruded_divided_lists(self,idx_list,mother):
         if isinstance(idx_list,int):
             if mother:
@@ -85,11 +104,11 @@ class Tissue(object):
                 self.divided_cells.extend(divided_cells)
                 self.extruded_cells.extend(extruded_cells)
     
-    def remove(self,idx_list,mother=None):
+    def remove(self,idx_list,divided=None):
         """remove a cell (or cells) from tissue. if storing dead cell ids need arg mother=True if cell is being removed
         following division, false otherwise. can be list."""
-        if self.store_dead:
-             self.update_extruded_divided_lists(idx_list,mother)
+        if self.save_cell_histories:
+             self.update_cell_histories(idx_list,divided)
         self.mesh.remove(idx_list)
         self.cell_ids = np.delete(self.cell_ids,idx_list)
         self.age = np.delete(self.age,idx_list)
@@ -210,3 +229,9 @@ class MutantSpringForce(BasicSpringForceTemp):
         alpha_i = tissue.properties['mutant'][i]*(self.alpha-1)+1
         return (vecs*np.repeat((MU/alpha_i*(distances-pref_sep))[:,np.newaxis],2,axis=1)).sum(axis=0)
         
+
+def _add_to_list(list_1,to_add):
+    try: 
+        list_1.extend(to_add)
+    except TypeError:
+        list_1.append(to_add)

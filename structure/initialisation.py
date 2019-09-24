@@ -26,18 +26,18 @@ def init_mesh_torus(N_cell_across,N_cell_up,noise,rand,multiplier=1,save_areas=F
     else: return mesh.MeshNoArea(centres,mesh.TorusNoArea(width,height))
     return mesh.Mesh(centres,geometry)
     
-def init_tissue_torus(N_cell_across,N_cell_up,noise,force,rand,save_areas=False,store_dead=False):
+def init_tissue_torus(N_cell_across,N_cell_up,noise,force,rand,save_areas=False,save_cell_histories=False):
     """generate a tissue object with NxN cells and given force object and periodic bcs"""
     N = N_cell_across*N_cell_up
     return cell.Tissue(init_mesh_torus(N_cell_across,N_cell_up,noise,rand,save_areas=save_areas),force,np.arange(N),
-                N,np.zeros(N,dtype=float),np.full(N,-1,dtype=int),store_dead=store_dead)
+                N,np.zeros(N,dtype=float),np.full(N,-1,dtype=int),save_cell_histories=save_cell_histories)
     
-def init_tissue_torus_with_multiplier(N_cell_across,N_cell_up,noise,force,rand,multiplier,ages=None,save_areas=False,store_dead=False):
+def init_tissue_torus_with_multiplier(N_cell_across,N_cell_up,noise,force,rand,multiplier,ages=None,save_areas=False,save_cell_histories=False):
     """generate a tissue object with NxN cells and given force object and periodic bcs for density dep. sims"""
     N = N_cell_across*N_cell_up
     if ages is None: ages = np.zeros(N,dtype=float)
     return cell.Tissue(init_mesh_torus(N_cell_across,N_cell_up,noise,rand,multiplier,save_areas=save_areas),force,np.arange(N),
-                N,ages,np.full(N,-1,dtype=int),store_dead=store_dead)
+                N,ages,np.full(N,-1,dtype=int),save_cell_histories=save_cell_histories)
     
     
     

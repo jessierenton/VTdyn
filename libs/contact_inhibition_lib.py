@@ -39,7 +39,8 @@ def run_return_final_tissue(simulation,N_step):
 def step_function(val,threshold):
     return np.heaviside(val-threshold,1)
 
-def G_to_S_transition(cycle_phases,tension_area_product,G_to_S_rate,dt,CIP_function,CIP_parameters,rand):
+def G_to_S_transition(properties,age,tension_area_product,G_to_S_rate,dt,CIP_function,CIP_parameters,rand):
+    cycle_phases = properties['cycle_phase']
     num_G_cells = sum(1-cycle_phases)
     energies = np.array([tension_area_product(i) if phase==0 else np.inf
                             for i,phase in enumerate(cycle_phases)])
@@ -48,9 +49,10 @@ def G_to_S_transition(cycle_phases,tension_area_product,G_to_S_rate,dt,CIP_funct
         return False
     else:
         cycle_phases[transitions]=1
+        properties['transition_age'][transitions]=age[transitions]        
         return True
 
-def simulation_contact_inhibition(tissue,dt,N_steps,stepsize,rand,rates,CIP_parameters,CIP_function=None,til_fix=False,progress_on=False,store_dead=False,return_events=False,T_D=T_D,stress_threshold=np.inf,N_limit=np.inf,**kwargs):
+def simulation_contact_inhibition(tissue,dt,N_steps,stepsize,rand,rates,CIP_parameters,CIP_function=None,til_fix=False,progress_on=False,return_events=False,T_D=T_D,stress_threshold=np.inf,N_limit=np.inf,**kwargs):
     yield tissue # start with initial tissue 
     step = 1.
     complete = False
@@ -68,13 +70,13 @@ def simulation_contact_inhibition(tissue,dt,N_steps,stepsize,rand,rates,CIP_para
         if N <=16 or N>=N_limit: 
             break
         mesh.move_all(tissue.dr(dt))
-        event_occurred = G_to_S_transition(properties['cycle_phase'],tissue.tension_area_product,G_to_S_rate,dt,CIP_function,CIP_parameters,rand)
+        event_occurred = G_to_S_transition(properties,tissue.age,tissue.tension_area_product,G_to_S_rate,dt,CIP_function,CIP_parameters,rand)
         #cell division
         num_S_cells = sum(properties['cycle_phase'])
         if rand.rand() < num_S_cells*S_to_div_rate*dt:
             event_occurred = True
             mother = rand.choice(N,p=properties['cycle_phase']/float(num_S_cells))
-            tissue.add_daughter_cells(mother,rand,{'cycle_phase':(0,0)})
+            tissue.add_daughter_cells(mother,rand,{'cycle_phase':(0,0),'transition_age':(-1,-1)})
             tissue.remove(mother,True)
         #cell_death
         N = len(tissue)
@@ -91,12 +93,13 @@ def simulation_contact_inhibition(tissue,dt,N_steps,stepsize,rand,rates,CIP_para
             
 
 def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False,progress_on=False,mutant_num=1,ancestors=None,
-        cycle_phase=None,save_areas=False,store_dead=False,tissue=None,force=None,return_events=False,N_limit=np.inf,domain_size_multiplier=1.,**kwargs):
+        cycle_phase=None,save_areas=False,save_cell_histories=False,tissue=None,force=None,return_events=False,N_limit=np.inf,domain_size_multiplier=1.,**kwargs):
     if tissue is None:
         if force is None: force = BasicSpringForceNoGrowth()
-        tissue = init.init_tissue_torus_with_multiplier(N,N,0.01,force,rand,domain_size_multiplier,save_areas=save_areas,store_dead=store_dead)
+        tissue = init.init_tissue_torus_with_multiplier(N,N,0.01,force,rand,domain_size_multiplier,save_areas=save_areas,save_cell_histories=save_cell_histories)
         if cycle_phase is not None:
             tissue.properties["cycle_phase"] = np.zeros(N*N,dtype=int)
+            tissue.properties["transition_age"] = -np.ones(N*N,dtype=float)
         if init_time is not None: 
             tissue = run_return_final_tissue(simulation(tissue,dt,init_time/dt,timestep/dt,rand,til_fix=False,store_dead=store_dead,**kwargs),init_time/dt)
             tissue.reset(reset_age=False)
@@ -104,6 +107,6 @@ def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False
             tissue.properties['type'] = np.zeros(N*N,dtype=int)
             tissue.properties['type'][rand.choice(N*N,size=mutant_num,replace=False)]=1
         if ancestors is not None: tissue.properties['ancestor'] = np.arange(N*N,dtype=int)
-    if return_events: history = run_return_events(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,store_dead=store_dead,return_events=return_events,N_limit=N_limit,**kwargs),timend/dt)
-    else: history = run(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,store_dead=store_dead,return_events=return_events,N_limit=N_limit,**kwargs),timend/dt,timestep/dt)
+    if return_events: history = run_return_events(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,**kwargs),timend/dt)
+    else: history = run(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,**kwargs),timend/dt,timestep/dt)
     return history

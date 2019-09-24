@@ -121,18 +121,18 @@ def population_size(history):
 def neighbour_distribution(history):
     return [np.bincount([len(tissue.mesh.neighbours[i]) for i in range(len(tissue))],minlength=18) for tissue in history]
 
-def cell_cycle_lengths(history,start_time=0.0):
-    tissue = history[-1]
-    divided_cell_info = np.array(tissue.divided_cells).T
-    cycle_lengths = (divided_cell_info[1])[divided_cell_info[2]>start_time]
-    return cycle_lengths
+def cell_cycle_lengths(history,start_time=0.0,ids=None):
+    cell_histories_ = cell_histories(history,start_time)
+    return [age for age,divided in zip(cell_histories_['age'],cell_histories_['divided']) if divided]
 
 def extrusion_ages(history,start_time=0.0):
-    tissue = history[-1]
-    extruded_cell_info = np.array(tissue.extruded_cells).T
-    extrusion_ages = (extruded_cell_info[1])[extruded_cell_info[2]>start_time]
-    return extrusion_ages
+    cell_histories_ = cell_histories(history,start_time)
+    return [age for age,divided in zip(cell_histories_['age'],cell_histories_['divided']) if not divided]
 
+def transition_ages(history,start_time=0.0):
+    cell_histories_ = cell_histories(history,start_time)
+    return [trans_age for trans_age in cell_histories_['transition_age'] if trans_age>=0]
+    
 def cycle_phases(history):
     return [(sum(tissue.properties["cycle_phase"]),sum(1-tissue.properties["cycle_phase"])) for tissue in history]
 
@@ -141,6 +141,14 @@ def cycle_phase_proportion(history,phase):
 
 def cell_density(history):
     return [len(tissue)/(tissue.mesh.geometry.width*tissue.mesh.geometry.height) for tissue in history]
+
+def cell_histories(history,start_time=0.0):
+    cell_histories_ = history[-1].cell_histories
+    if start_time>0.:
+        time = np.array(cell_histories_['time'])
+        start = np.where(time>start_time)[0][0]
+        cell_histories_ = {key:valist[start:] for key,valist in cell_histories.iteritems()}
+    return cell_histories_
 
 def mean_tension_area_product(history,std=True):
    t_a_p = [[tissue.tension_area_product(i) for i in range(len(tissue))] for tissue in history]
@@ -244,5 +252,5 @@ def save_as_json(history,outfile,fields,parameters,index=0):
     
 FIELDS_DICT = {"pop_size":population_size,"mutants":number_mutants,"neighbours":neighbour_distribution,
                 "cycle_lengths":cell_cycle_lengths,"extrusion_ages":extrusion_ages,"cycle_phases":cycle_phases,
-                "density":cell_density,"energy":mean_tension_area_product,"division_history":division_history,
-                "extrusion_history":extrusion_history,"cell_seperation":mean_cell_seperation} 
+                "density":cell_density,"energy":mean_tension_area_product,"cell_seperation":mean_cell_seperation,
+                "cell_histories":cell_histories,"transition_ages":transition_ages} 

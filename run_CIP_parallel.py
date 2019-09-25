@@ -45,7 +45,7 @@ def run_single(i,threshold,death_rate,domain_size_multiplier):
                 return_events=False,save_cell_histories=True,N_limit=MAX_POP_SIZE,
                 domain_size_multiplier=domain_size_multiplier,
                 CIP_parameters=CIP_parameters,rates=rates)
-    outdir = PARENTDIR+'/DRate%.3f_Thresh%02.1f'%(death_rate,threshold)
+    outdir = PARENTDIR+'/DRate%.3f_Thresh%02.1f_CD_%1.2f'%(death_rate,threshold,domain_size_multiplier)
     # save_data(history,outdir,i)
     data.save_as_json(history,outdir,DATA_SAVE_FIELDS,{"threshold":threshold,"death_rate":death_rate,
                     "width":history[0].mesh.geometry.width,"height":history[0].mesh.geometry.height,

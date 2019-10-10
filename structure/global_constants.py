@@ -7,6 +7,7 @@ T_G1, T_other = 2,10
 T_D = 16.0
 
 L0 = 1.0
+A0 = 3**0.5/2.
 EPS = 0.05
 
 # Osborne 2017 params

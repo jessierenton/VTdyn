@@ -58,9 +58,9 @@ class Tissue(object):
             return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(), self.mother.copy(),copy.deepcopy(self.properties),self.save_cell_histories, self.cell_histories,self.time)
         else: return Tissue(self.mesh.copy(),self.Force,self.cell_ids.copy(),self.next_id,self.age.copy(), self.mother.copy(),copy.deepcopy(self.properties),time=self.time)
     
-	def mesh_id(self,cell_id):
-		return np.where(self.mesh.ids==cell_id)[0]
-        
+    def mesh_id(self,cell_id):
+        return np.where(self.mesh.ids==cell_id)[0]
+             
     def update(self,dt):
         self.mesh.update()
         self.age += dt      

@@ -255,4 +255,4 @@ def save_as_json(history,outfile,fields,parameters,index=0):
 FIELDS_DICT = {"pop_size":population_size,"mutants":number_mutants,"neighbours":neighbour_distribution,
                 "cycle_lengths":cell_cycle_lengths,"extrusion_ages":extrusion_ages,"cycle_phases":cycle_phases,
                 "density":cell_density,"energy":mean_tension_area_product,"cell_seperation":mean_cell_seperation,
-                "cell_histories":cell_histories,"transition_ages":transition_ages,"areas":areas} 
+                "cell_histories":cell_histories,"transition_ages":transition_ages,"areas":mean_areas} 

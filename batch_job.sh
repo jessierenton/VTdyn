@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --cpus-per-task=60
-#SBATCH --array=0-3
+#SBATCH --array=0-5
 #SBATCH --nodes=1
 
 source /clusternfs/jrenton/anaconda2/my_anaconda.sh

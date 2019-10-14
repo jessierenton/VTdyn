@@ -10,7 +10,7 @@ from structure.cell import Tissue, BasicSpringForceNoGrowth
 import sys,os
 import itertools 
 
-L = 6 # population size N=l*l
+L = 10 # population size N=l*l
 TIMEND = 1000. # simulation time (hours)
 MAX_POP_SIZE = 500
 TIMESTEP = 10. # time intervals to save simulation history

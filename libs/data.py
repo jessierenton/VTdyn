@@ -165,7 +165,7 @@ def mean_area(history,std=True):
     return [(np.mean(tissue.mesh.areas),np.std(tissue.mesh.areas)) for tissue in history]
 
 def areas(history):
-    return [tissue.mesh.areas for tissue in history]
+    return [tissue.mesh.areas.tolist() for tissue in history]
 
 @memoize
 def get_local_density(mesh):

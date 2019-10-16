@@ -14,23 +14,23 @@ L = 10 # population size N=l*l
 TIMEND = 1000. # simulation time (hours)
 MAX_POP_SIZE = 500
 TIMESTEP = 10. # time intervals to save simulation history
-BIRTH_RATE = 1./12
+DEATH_RATE = 1./12
 INIT_TIME = None
 
 S0 = 1.
 
 # DATA_SAVE_FIELDS = ["pop_size","cell_histories","cycle_phases","density",
 #                     "cell_seperation"]
-DATA_SAVE_FIELDS = ["density","cell_histories"]
+DATA_SAVE_FIELDS = ["density","cell_histories","areas"]
 
 for d in DATA_SAVE_FIELDS:
     if d not in data.FIELDS_DICT:
         raise ValueError("not all data types are correct")
 
-PARENTDIR = "CIP_data_area_threshold/sweep1"
+PARENTDIR = "CIP_data_area_threshold/sweep_with_areas1"
 
 with open(PARENTDIR+'/info',"w") as f:
-    f.write('division_rate = %.3f\n'%BIRTH_RATE)
+    f.write('death_rate = %.3f\n'%DEATH_RATE)
     f.write('initial pop size = %3d'%(L*L))
     f.write('domain width = %3.1g'%(L*L*S0) )
 simulation = lib.simulation_contact_inhibition_area_dependent  #simulation routine imported from lib
@@ -40,7 +40,7 @@ def run_single_unpack(args):
 
 def run_single(i,threshold_area_fraction,death_to_birth_rate_ratio):
     """run a single voronoi tessellation model simulation"""
-    rates = (BIRTH_RATE*death_to_birth_rate_ratio,BIRTH_RATE)
+    rates = (DEATH_RATE,DEATH_RATE/death_to_birth_rate_ratio)
     rand = np.random.RandomState()
     history = lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,progress_on=False,
                 init_time=INIT_TIME,til_fix=False,save_areas=True,
@@ -49,7 +49,7 @@ def run_single(i,threshold_area_fraction,death_to_birth_rate_ratio):
     outdir = PARENTDIR+'/DtoB%.1f_Thresh%.2f'%(death_to_birth_rate_ratio,threshold_area_fraction)
     if len(DATA_SAVE_FIELDS) > 0:
         data.save_as_json(history,outdir,DATA_SAVE_FIELDS,{"threshold_area_fraction":threshold_area_fraction,
-                    "birth_rate":BIRTH_RATE,"death_to_birth_rate_ratio":death_to_birth_rate_ratio,
+                    "death_rate":DEATH_RATE,"death_to_birth_rate_ratio":death_to_birth_rate_ratio,
                     "width":history[0].mesh.geometry.width},i)
     
 def run_parallel(threshold_area_fraction_vals,death_to_birth_rate_ratio_vals,idx):
@@ -58,8 +58,8 @@ def run_parallel(threshold_area_fraction_vals,death_to_birth_rate_ratio_vals,idx
                 for threshold_area_fraction,death_to_birth_rate_ratio in itertools.product(threshold_area_fraction_vals,death_to_birth_rate_ratio_vals)]
     pool.map(run_single_unpack,args)
 
-threshold_area_fraction_vals = np.linspace(0.4,1.0,13)
-death_to_birth_rate_ratio_vals = np.linspace(0.0,0.9,10) 
+threshold_area_fraction_vals = np.linspace(0.4,1.4,11)
+death_to_birth_rate_ratio_vals = np.linspace(0.1,0.9,10) 
 
 idx = int(sys.argv[1])
 run_parallel(threshold_area_fraction_vals,death_to_birth_rate_ratio_vals,idx)          

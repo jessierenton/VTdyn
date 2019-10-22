@@ -146,7 +146,7 @@ def mean_force(history):
     return [np.mean(np.sqrt((tissue.Force(tissue)**2).sum(axis=1))) for tissue in history]
 
 def forces(history):
-    return [np.sqrt((tissue.Force(tissue)**2).sum(axis=1))) for tissue in history]
+    return [np.sqrt((tissue.Force(tissue)**2).sum(axis=1)) for tissue in history]
 
 def cell_histories(history,start_time=0.0):
     cell_histories_ = history[-1].cell_histories

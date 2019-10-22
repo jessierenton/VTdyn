@@ -43,7 +43,7 @@ def run_single(i,threshold_area_fraction,death_to_birth_rate_ratio,domain_size_m
     history = lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,progress_on=False,
                 init_time=INIT_TIME,til_fix=False,save_areas=True,
                 return_events=False,save_cell_histories=True,N_limit=MAX_POP_SIZE,
-                domain_size_multiplier=S0,rates=rates,threshold_area_fraction=threshold_area_fraction)
+                domain_size_multiplier=domain_size_multiplier,rates=rates,threshold_area_fraction=threshold_area_fraction)
     outdir = PARENTDIR+'/DtoB%.1f_Thresh%.2f'%(death_to_birth_rate_ratio,threshold_area_fraction)
     if len(DATA_SAVE_FIELDS) > 0:
         data.save_as_json(history,outdir,DATA_SAVE_FIELDS,{"threshold_area_fraction":threshold_area_fraction,

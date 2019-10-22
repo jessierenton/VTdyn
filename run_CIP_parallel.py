@@ -21,13 +21,13 @@ S0 = 1.
 
 # DATA_SAVE_FIELDS = ["pop_size","cell_histories","cycle_phases","density",
 #                     "cell_seperation"]
-DATA_SAVE_FIELDS = ["density","cell_histories","areas"]
+DATA_SAVE_FIELDS = ["density","cell_histories","areas","forces"]
 
 for d in DATA_SAVE_FIELDS:
     if d not in data.FIELDS_DICT:
         raise ValueError("not all data types are correct")
 
-PARENTDIR = "CIP_data_area_threshold/sweep_with_areas1"
+PARENTDIR = "CIP_data_area_threshold/sweep_fixed_N100_db0.4"
 
 with open(PARENTDIR+'/info',"w") as f:
     f.write('death_rate = %.3f\n'%DEATH_RATE)

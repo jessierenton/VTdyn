@@ -45,7 +45,7 @@ def save_areas(history,outdir,index=0):
             wfile.write("%.3e    "%area)
         wfile.write("\n")
     
-def save_force(history,outdir,index=0):
+def mean_force(history,outdir,index=0):
     """saves mean magnitude of force on cells in each tissue"""
     if not os.path.exists(outdir): # if the folder doesn"t exist create it
          os.makedirs(outdir)
@@ -141,6 +141,12 @@ def cycle_phase_proportion(history,phase):
 
 def cell_density(history):
     return [len(tissue)/(tissue.mesh.geometry.width*tissue.mesh.geometry.height) for tissue in history]
+    
+def mean_force(history):
+    return [np.mean(np.sqrt((tissue.Force(tissue)**2).sum(axis=1))) for tissue in history]
+
+def forces(history):
+    return [np.sqrt((tissue.Force(tissue)**2).sum(axis=1))) for tissue in history]
 
 def cell_histories(history,start_time=0.0):
     cell_histories_ = history[-1].cell_histories
@@ -258,4 +264,5 @@ def save_as_json(history,outfile,fields,parameters,index=0):
 FIELDS_DICT = {"pop_size":population_size,"mutants":number_mutants,"neighbours":neighbour_distribution,
                 "cycle_lengths":cell_cycle_lengths,"extrusion_ages":extrusion_ages,"cycle_phases":cycle_phases,
                 "density":cell_density,"energy":mean_tension_area_product,"cell_seperation":mean_cell_seperation,
-                "cell_histories":cell_histories,"transition_ages":transition_ages,"mean_area":mean_area,"areas":areas} 
+                "cell_histories":cell_histories,"transition_ages":transition_ages,"mean_area":mean_area,"areas":areas,
+                "mean_force":mean_force,"forces":forces} 

@@ -173,6 +173,9 @@ def mean_area(history,std=True):
 def areas(history):
     return [tissue.mesh.areas.tolist() for tissue in history]
 
+def ages(history):
+    return [tissue.age.tolist() for tissue in history]
+
 @memoize
 def get_local_density(mesh):
     return mesh.local_density()
@@ -265,4 +268,4 @@ FIELDS_DICT = {"pop_size":population_size,"mutants":number_mutants,"neighbours":
                 "cycle_lengths":cell_cycle_lengths,"extrusion_ages":extrusion_ages,"cycle_phases":cycle_phases,
                 "density":cell_density,"energy":mean_tension_area_product,"cell_seperation":mean_cell_seperation,
                 "cell_histories":cell_histories,"transition_ages":transition_ages,"mean_area":mean_area,"areas":areas,
-                "mean_force":mean_force,"forces":forces} 
+                "mean_force":mean_force,"forces":forces,"ages":ages} 

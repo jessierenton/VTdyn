@@ -14,18 +14,18 @@ L = 10 # population size N=l*l
 TIMEND = 1000. # simulation time (hours)
 MAX_POP_SIZE = 500
 TIMESTEP = 10. # time intervals to save simulation history
-DEATH_RATE = 1./12
+DEATH_RATE = 1./float(sys.argv[3])
 INIT_TIME = None
 
 # DATA_SAVE_FIELDS = ["pop_size","cell_histories","cycle_phases","density",
 #                     "cell_seperation"]
-DATA_SAVE_FIELDS = ["density","cell_histories","areas","pop_size"]
+DATA_SAVE_FIELDS = ["density","cell_histories","areas","ages","forces"]
 
 for d in DATA_SAVE_FIELDS:
     if d not in data.FIELDS_DICT:
         raise ValueError("not all data types are correct")
 
-PARENTDIR = "CIP_data_area_threshold/sweep_fixed_N100"
+PARENTDIR = "CIP_data_area_threshold/sweep_fixed_N100_TD%d"%1./DEATH_RATE
 
 with open(PARENTDIR+'/info',"w") as f:
     f.write('death_rate = %.3f\n'%DEATH_RATE)
@@ -36,7 +36,7 @@ simulation = lib.simulation_contact_inhibition_area_dependent  #simulation routi
 def run_single_unpack(args):
     return run_single(*args)
 
-def run_single(i,threshold_area_fraction,death_to_birth_rate_ratio,domain_size_multiplier):
+def run_single(i,threshold_area_fraction,death_to_birth_rate_ratio,domain_size_multiplier,return_history=False):
     """run a single voronoi tessellation model simulation"""
     rates = (DEATH_RATE,DEATH_RATE/death_to_birth_rate_ratio)
     rand = np.random.RandomState()

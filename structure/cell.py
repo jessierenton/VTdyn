@@ -68,7 +68,9 @@ class Tissue(object):
     
     def update_cell_histories(self,idx_list,divided):
         if self.cell_histories == {}:
-            self.cell_histories.update({'time':[],'cell_ids':[],'age':[],'divided':[]}) 
+            self.cell_histories.update({'time':[],'cell_ids':[],'age':[],'divided':[]})
+            try: self.cell_histories.update({'area':[]}) 
+            except KeyError: pass 
             self.cell_histories.update({key:[] for key in self.properties.keys()})
         for key,valist in self.cell_histories.iteritems():
             if key == 'time':
@@ -82,6 +84,8 @@ class Tissue(object):
                 _add_to_list(valist,self.age[idx_list])
             elif key == 'divided':
                 _add_to_list(valist,divided)
+            elif key == 'area':
+                _add_to_list(valist,self.mesh.areas[idx_list])
             else:
                 _add_to_list(valist,self.properties[key][idx_list])
         

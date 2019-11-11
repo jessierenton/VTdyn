@@ -10,9 +10,9 @@ from structure.cell import Tissue, BasicSpringForceNoGrowth
 import sys,os
 import itertools 
 
-L = 10 # population size N=l*l
-TIMEND = 1000. # simulation time (hours)
-MAX_POP_SIZE = 500
+L = 14 # population size N=l*l
+TIMEND = 10. # simulation time (hours)
+MAX_POP_SIZE = 1000
 TIMESTEP = 10. # time intervals to save simulation history
 DEATH_RATE = 1./12
 INIT_TIME = None
@@ -21,18 +21,19 @@ S0 = 1.
 
 # DATA_SAVE_FIELDS = ["pop_size","cell_histories","cycle_phases","density",
 #                     "cell_seperation"]
-DATA_SAVE_FIELDS = ["density","cell_histories","areas","forces"]
+DATA_SAVE_FIELDS = ["density"]
 
 for d in DATA_SAVE_FIELDS:
     if d not in data.FIELDS_DICT:
         raise ValueError("not all data types are correct")
 
-PARENTDIR = "CIP_data_area_threshold/sweep_fixed_N100_db0.4"
+PARENTDIR = "CIP_data_area_threshold/densities_fixed_domain_15"
 
 with open(PARENTDIR+'/info',"w") as f:
     f.write('death_rate = %.3f\n'%DEATH_RATE)
-    f.write('initial pop size = %3d'%(L*L))
-    f.write('domain width = %3.1g'%(L*L*S0) )
+    f.write('initial pop size = %3d\n'%(L*L))
+    f.write('domain width = %3.1g\n'%(L*L*S0))
+    f.write('timestep = %.1f'%TIMESTEP)
 simulation = lib.simulation_contact_inhibition_area_dependent  #simulation routine imported from lib
 
 def run_single_unpack(args):
@@ -58,8 +59,8 @@ def run_parallel(threshold_area_fraction_vals,death_to_birth_rate_ratio_vals,idx
                 for threshold_area_fraction,death_to_birth_rate_ratio in itertools.product(threshold_area_fraction_vals,death_to_birth_rate_ratio_vals)]
     pool.map(run_single_unpack,args)
 
-threshold_area_fraction_vals = np.linspace(0.4,1.4,11)
-death_to_birth_rate_ratio_vals = np.linspace(0.1,0.9,10) 
+threshold_area_fraction_vals = np.linspace(0.4,1.8,16)
+death_to_birth_rate_ratio_vals = np.linspace(0.1,0.8,8) 
 
 idx = int(sys.argv[1])
 run_parallel(threshold_area_fraction_vals,death_to_birth_rate_ratio_vals,idx)          

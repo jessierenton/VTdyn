@@ -27,7 +27,7 @@ def run_generator(simulation,N_step,skip):
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #------------------------------------------ SIMULATION ROUTINES ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-def simulation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,til_fix=False,eta=ETA):
+def simulation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,til_fix=False,eta=ETA,progress_on=False):
     """simulation loop for neutral process tracking ancestor ids"""
     complete=False
     step = 0.
@@ -45,7 +45,7 @@ def simulation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,til_fix=False,e
             tissue.remove(mother,True)
             tissue.remove(rand.randint(N)) #kill random cell
         tissue.update(dt)
-        print_progress(step,N_steps)
+        if progress_on: print_progress(step,N_steps)
         complete = (np.all(tissue.properties['ancestor']==tissue.properties['ancestor'][0]) and step%stepsize==0)
         step += 1 
         yield tissue

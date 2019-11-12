@@ -17,6 +17,7 @@ if not os.path.exists(outdir): # if the outdir doesn't exist create it
      os.makedirs(outdir)
 
 def run_sim(eta):
+    print(eta)
     rand = np.random.RandomState()
     history = lib.run_simulation_vary_eta(simulation,l,timestep,timend,rand,eta,dt,til_fix=False,save_areas=True)
     return (data.mean_force(history,False),data.mean_area(history,False))

@@ -31,8 +31,6 @@ def simulation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,til_fix=False,e
     """simulation loop for neutral process tracking ancestor ids"""
     complete=False
     step = 0.
-    print dt
-    print T_D
     while not til_fix or not complete:
         N= len(tissue)
         properties = tissue.properties
@@ -60,7 +58,7 @@ def initialise_tissue_ancestors(N,dt,timend,timestep,rand,MU=None,save_areas=Fal
     tissue.properties['ancestor']=np.arange(N*N)
     return tissue
 
-def run_simulation(simulation,N,timestep,timend,rand,til_fix=True,save_areas=False,tissue=None,save_cell_histories=False):
+def run_simulation(simulation,N,timestep,timend,rand,til_fix=True,save_areas=False,tissue=None,save_cell_histories=False,progress_on=False):
     """initialise tissue with NxN cells and run given simulation with given game and constants.
             starts with single cooperator
             ends at time=timend OR if til_fix=True when population all cooperators (type=1) or defectors (2)
@@ -68,10 +66,10 @@ def run_simulation(simulation,N,timestep,timend,rand,til_fix=True,save_areas=Fal
             """
     if tissue is None:
         tissue = initialise_tissue_ancestors(N,dt,0,0,rand,save_areas=save_areas,save_cell_histories=save_cell_histories)
-    history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix),timend/dt,timestep/dt)
+    history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix,progress_on=progress_on),timend/dt,timestep/dt)
     return history
 
-def run_simulation_vary_MU(simulation,N,timestep,timend,rand,MU,dt,til_fix=True,save_areas=False,tissue=None,save_cell_histories=False):
+def run_simulation_vary_MU(simulation,N,timestep,timend,rand,MU,dt,til_fix=True,save_areas=False,tissue=None,save_cell_histories=False,progress_on=False):
     """initialise tissue with NxN cells and run given simulation with given game and constants.
             starts with single cooperator
             ends at time=timend OR if til_fix=True when population all cooperators (type=1) or defectors (2)
@@ -79,10 +77,10 @@ def run_simulation_vary_MU(simulation,N,timestep,timend,rand,MU,dt,til_fix=True,
             """
     if tissue is None:
         tissue = initialise_tissue_ancestors(N,dt,0,0,rand,MU,save_areas,save_cell_histories=save_cell_histories)
-    history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix),timend/dt,timestep/dt)
+    history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix,progress_on=progress_on),timend/dt,timestep/dt)
     return history
     
-def run_simulation_vary_eta(simulation,N,timestep,timend,rand,eta,dt,til_fix=True,save_areas=False,tissue=None,save_cell_histories=False):
+def run_simulation_vary_eta(simulation,N,timestep,timend,rand,eta,dt,til_fix=True,save_areas=False,tissue=None,save_cell_histories=False,progress_on=False):
     """initialise tissue with NxN cells and run given simulation with given game and constants.
             starts with single cooperator
             ends at time=timend OR if til_fix=True when population all cooperators (type=1) or defectors (2)
@@ -90,5 +88,5 @@ def run_simulation_vary_eta(simulation,N,timestep,timend,rand,eta,dt,til_fix=Tru
             """
     if tissue is None:
         tissue = initialise_tissue_ancestors(N,dt,0,0,rand,save_areas=save_areas,save_cell_histories=save_cell_histories)
-    history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix,eta=eta),timend/dt,timestep/dt)
+    history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix,eta=eta,progress_on=progress_on),timend/dt,timestep/dt)
     return history

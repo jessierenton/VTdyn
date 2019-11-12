@@ -144,9 +144,9 @@ class Tissue(object):
              for i in idx_list:
                  self.add_daughter_cells(i,rand)
         
-    def dr(self,dt): 
+    def dr(self,dt,eta=ETA): 
         """calculate distance cells move due to force law in time dt"""  
-        return (dt/ETA)*self.Force(self)
+        return (dt/eta)*self.Force(self)
     
     def cell_stress(self,i):
         """calculates the stress p_i on a single cell i according to the formula p_i = sum_j mag(F^rep_ij.u_ij)/l_ij

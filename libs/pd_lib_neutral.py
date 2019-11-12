@@ -3,9 +3,12 @@ import sys
 import numpy as np
 import itertools
 import structure
-from structure.global_constants import T_D,dt
+from structure.global_constants import T_D,dt,ETA
 from structure.cell import Tissue, BasicSpringForceNoGrowth
 import structure.initialisation as init
+
+global T_D
+T_D=12.
 
 def print_progress(step,N_steps):
     sys.stdout.write("\r %.2f %%"%(step*100./N_steps))
@@ -24,21 +27,22 @@ def run_generator(simulation,N_step,skip):
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #------------------------------------------ SIMULATION ROUTINES ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-def simulation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,til_fix=False):
+def simulation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,til_fix=False,eta=ETA):
     """simulation loop for neutral process tracking ancestor ids"""
     complete=False
     step = 0.
     print dt
+    print T_D
     while not til_fix or not complete:
         N= len(tissue)
         properties = tissue.properties
         mesh = tissue.mesh
-        mesh.move_all(tissue.dr(dt))
+        mesh.move_all(tissue.dr(dt,eta))
         if rand.rand() < (1./T_D)*N*dt:
             mother = rand.randint(N)
             tissue.add_daughter_cells(mother,rand)
             properties['ancestor'] = np.append(properties['ancestor'],[properties['ancestor'][mother]]*2)
-            tissue.remove(mother)
+            tissue.remove(mother,True)
             tissue.remove(rand.randint(N)) #kill random cell
         tissue.update(dt)
         print_progress(step,N_steps)
@@ -46,34 +50,45 @@ def simulation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,til_fix=False):
         step += 1 
         yield tissue
 
-def initialise_tissue_ancestors(N,dt,timend,timestep,rand,MU=None,save_areas=False):  
+def initialise_tissue_ancestors(N,dt,timend,timestep,rand,MU=None,save_areas=False,save_cell_histories=False):  
     """initialise tissue and run simulation until timend returning final state"""              
-    if MU is None: tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=save_areas)
-    else: tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(MU),rand,save_areas=save_areas)
+    if MU is None: tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=save_areas,save_cell_histories=save_cell_histories)
+    else: tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(MU),rand,save_areas=save_areas,save_cell_histories=save_cell_histories)
     tissue.properties['ancestor'] = np.arange(N*N)
     tissue.age = np.zeros(N*N,dtype=float)
     if timend !=0: tissue = run(tissue,simulation_ancestor_tracking(tissue,dt,timend/dt,timestep/dt,rand),timend/dt,timestep/dt)[-1]
     tissue.properties['ancestor']=np.arange(N*N)
     return tissue
 
-def run_simulation(simulation,N,timestep,timend,rand,til_fix=True,save_areas=False,tissue=None):
+def run_simulation(simulation,N,timestep,timend,rand,til_fix=True,save_areas=False,tissue=None,save_cell_histories=False):
     """initialise tissue with NxN cells and run given simulation with given game and constants.
             starts with single cooperator
             ends at time=timend OR if til_fix=True when population all cooperators (type=1) or defectors (2)
         returns history: list of tissue objects at time intervals given by timestep
             """
     if tissue is None:
-        tissue = initialise_tissue_ancestors(N,dt,0,0,rand,save_areas=save_areas)
+        tissue = initialise_tissue_ancestors(N,dt,0,0,rand,save_areas=save_areas,save_cell_histories=save_cell_histories)
     history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix),timend/dt,timestep/dt)
     return history
 
-def run_simulation_vary_MU(simulation,N,timestep,timend,rand,MU,dt,til_fix=True,save_areas=False,tissue=None):
+def run_simulation_vary_MU(simulation,N,timestep,timend,rand,MU,dt,til_fix=True,save_areas=False,tissue=None,save_cell_histories=False):
     """initialise tissue with NxN cells and run given simulation with given game and constants.
             starts with single cooperator
             ends at time=timend OR if til_fix=True when population all cooperators (type=1) or defectors (2)
         returns history: list of tissue objects at time intervals given by timestep
             """
     if tissue is None:
-        tissue = initialise_tissue_ancestors(N,dt,0,0,rand,MU,save_areas)
+        tissue = initialise_tissue_ancestors(N,dt,0,0,rand,MU,save_areas,save_cell_histories=save_cell_histories)
     history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix),timend/dt,timestep/dt)
+    return history
+    
+def run_simulation_vary_eta(simulation,N,timestep,timend,rand,eta,dt,til_fix=True,save_areas=False,tissue=None,save_cell_histories=False):
+    """initialise tissue with NxN cells and run given simulation with given game and constants.
+            starts with single cooperator
+            ends at time=timend OR if til_fix=True when population all cooperators (type=1) or defectors (2)
+        returns history: list of tissue objects at time intervals given by timestep
+            """
+    if tissue is None:
+        tissue = initialise_tissue_ancestors(N,dt,0,0,rand,save_areas=save_areas,save_cell_histories=save_cell_histories)
+    history = run(tissue, simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix,eta=eta),timend/dt,timestep/dt)
     return history

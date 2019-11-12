@@ -142,8 +142,11 @@ def cycle_phase_proportion(history,phase):
 def cell_density(history):
     return [len(tissue)/(tissue.mesh.geometry.width*tissue.mesh.geometry.height) for tissue in history]
     
-def mean_force(history):
-    return [np.mean(np.sqrt((tissue.Force(tissue)**2).sum(axis=1))) for tissue in history]
+def mean_force(history,std=True):
+    if std:
+        return [(np.mean(np.sqrt((tissue.Force(tissue)**2).sum(axis=1))),np.std(np.sqrt((tissue.Force(tissue)**2).sum(axis=1)))) for tissue in history]
+    else:
+        return [np.mean(np.sqrt((tissue.Force(tissue)**2).sum(axis=1))) for tissue in history]
 
 def forces(history):
     return [np.sqrt((tissue.Force(tissue)**2).sum(axis=1)).tolist() for tissue in history]
@@ -168,7 +171,10 @@ def mean_cell_seperation(history,std=True):
     else: return [np.mean(d) for d in cs]
 
 def mean_area(history,std=True):
-    return [(np.mean(tissue.mesh.areas),np.std(tissue.mesh.areas)) for tissue in history]
+    if std: 
+        return [(np.mean(tissue.mesh.areas),np.std(tissue.mesh.areas)) for tissue in history]
+    else: 
+        return [np.mean(tissue.mesh.areas) for tissue in history]
 
 def areas(history):
     return [tissue.mesh.areas.tolist() for tissue in history]
@@ -254,12 +260,12 @@ def save_all(history,outdir,index=0):
     except: pass
     save_age_of_death(history,outdir,index)
     
-def save_as_json(history,outfile,fields,parameters,index=0):
+def save_as_json(history,outfile,fields,parameters=None,index=0):
     data = {f:FIELDS_DICT[f](history) for f in fields}
     for key,value in data.iteritems():
         if isinstance(value,np.ndarray):
             data[key] = value.tolist()
-    data["parameters"]=parameters
+    if parameters is not None: data["parameters"]=parameters
     with open(outfile+'_%03d.json'%index,"w") as f:        
         json.dump(data,f,indent=4)
     

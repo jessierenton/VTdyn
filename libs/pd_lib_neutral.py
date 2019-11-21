@@ -27,6 +27,17 @@ def run_generator(simulation,N_step,skip):
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #------------------------------------------ SIMULATION ROUTINES ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+def simulation_no_division(tissue,dt,N_steps,rand):
+    """run tissue simulation with no death or division"""
+    step = 0.
+    while True:
+        N= len(tissue)
+        mesh = tissue.mesh
+        step += 1
+        mesh.move_all(tissue.dr(dt))
+        tissue.update(dt)
+        yield tissue
+
 def simulation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,til_fix=False,eta=ETA,progress_on=False):
     """simulation loop for neutral process tracking ancestor ids"""
     complete=False

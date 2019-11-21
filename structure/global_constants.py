@@ -1,10 +1,11 @@
-global T_D,T_G1, T_other, V_G1, min_G1, L0, EPS,MU,ETA,dt, r_max
+global T_D,T_G1, T_other, T_M,V_G1, min_G1, L0, EPS,MU,ETA,dt, r_max
 
 #cell-cycle times hours
 T_G1, T_other = 2,10
 # V_G1 = 1 #variance in G1-time
 # min_G1 = 0.01 #min G1-time
 T_D = 12.0
+T_M = 1.0
 
 L0 = 1.0
 A0 = 3**0.5/2.

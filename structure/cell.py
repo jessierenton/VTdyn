@@ -2,7 +2,7 @@ import numpy as np
 import copy
 from functools import partial
 import global_constants as gc
-from global_constants import EPS, L0, MU, ETA
+from global_constants import EPS, L0, MU, ETA, T_M
               
 class Tissue(object):    
     
@@ -49,7 +49,7 @@ class Tissue(object):
         self.next_id = N
         self.mother = -np.ones(N,dtype=int)
         self.time = 0.
-        self.cell_histories = []
+        if self.save_cell_histories: self.cell_histories = {}
         
     
     def copy(self):
@@ -177,8 +177,8 @@ class Force(object):
         
 class BasicSpringForceTemp(Force):
     
-    def __init__(self,MU=MU):
-        self.MU=MU
+    def __init__(self,mu=MU):
+        self.mu=mu
     
     def force(self,tissue):
         return np.array([self.force_i(tissue,i) for i in range(len(tissue))])
@@ -189,17 +189,33 @@ class BasicSpringForceTemp(Force):
 
 class BasicSpringForceNoGrowth(BasicSpringForceTemp):
     
+    def __init__(self,mu=MU,T_m=T_M):
+        BasicSpringForceTemp.__init__(self,mu)
+        self.T_m=T_m
+        if T_m is None:
+            self.force_i = self.force_i_no_T_m
+            self.force_ij = self.force_ij_no_T_m
+    
     def force_i(self,tissue,i):
         distances,vecs,n_list = tissue.mesh.distances[i],tissue.mesh.unit_vecs[i],tissue.mesh.neighbours[i]
-        if tissue.age[i] >= 1.0 or tissue.mother[i] == -1: pref_sep = L0
-        else: pref_sep = (tissue.mother[n_list]==tissue.mother[i])*((L0-EPS)*tissue.age[i]+EPS-L0) +L0
-        return (self.MU*vecs*np.repeat((distances-pref_sep)[:,np.newaxis],2,axis=1)).sum(axis=0)
+        if tissue.age[i] >= self.T_m or tissue.mother[i] == -1: pref_sep = L0
+        else: pref_sep = (tissue.mother[n_list]==tissue.mother[i])*((L0-EPS)*tissue.age[i]/self.T_m+EPS-L0) +L0
+        return (self.mu*vecs*np.repeat((distances-pref_sep)[:,np.newaxis],2,axis=1)).sum(axis=0)
+    
+    def force_i_no_T_m(self,tissue,i):
+        distances,vecs,n_list = tissue.mesh.distances[i],tissue.mesh.unit_vecs[i],tissue.mesh.neighbours[i]
+        return (self.mu*vecs*np.repeat((distances-L0)[:,np.newaxis],2,axis=1)).sum(axis=0)
     
     def force_ij(self,tissue,i):
         distances,vecs,n_list = tissue.mesh.distances[i],tissue.mesh.unit_vecs[i],tissue.mesh.neighbours[i]
-        if tissue.age[i] >= 1.0 or tissue.mother[i] == -1: pref_sep = L0
-        else: pref_sep = (tissue.mother[n_list]==tissue.mother[i])*((L0-EPS)*tissue.age[i]+EPS-L0) +L0
-        forces = self.MU*(distances-pref_sep) 
+        if tissue.age[i] >= self.T_m or tissue.mother[i] == -1: pref_sep = L0
+        else: pref_sep = (tissue.mother[n_list]==tissue.mother[i])*((L0-EPS)*tissue.age[i]/self.T_m+EPS-L0) +L0
+        forces = self.mu*(distances-pref_sep) 
+        return forces
+    
+    def force_ij_no_T_m(self,tissue,i):
+        distances,vecs,n_list = tissue.mesh.distances[i],tissue.mesh.unit_vecs[i],tissue.mesh.neighbours[i]
+        forces = self.mu*(distances-L0) 
         return forces
 
 class BasicSpringForceGrowth(BasicSpringForceTemp):
@@ -207,31 +223,31 @@ class BasicSpringForceGrowth(BasicSpringForceTemp):
     def force_i(self,tissue,i):
         distances,vecs,n_list = tissue.mesh.distances[i],tissue.mesh.unit_vecs[i],tissue.mesh.neighbours[i]
         pref_sep = RHO+0.5*GROWTH_RATE*(tissue.age[n_list]+tissue.age[i])
-        return (self.MU*vecs*np.repeat((distances-pref_sep)[:,np.newaxis],2,axis=1)).sum(axis=0)
+        return (self.mu*vecs*np.repeat((distances-pref_sep)[:,np.newaxis],2,axis=1)).sum(axis=0)
 
 class SpringForceVariableMu(BasicSpringForceTemp):
 
-    def __init__(self,delta,MU=MU):
-        BasicSpringForceTemp.__init__(MU)
+    def __init__(self,delta,mu=MU):
+        BasicSpringForceTemp.__init__(self,mu)
         self.delta = delta
 
     def force_i(self,tissue,i):
         distances,vecs,n_list = tissue.mesh.distances[i],tissue.mesh.unit_vecs[i],tissue.mesh.neighbours[i]
         pref_sep = RHO+0.5*GROWTH_RATE*(tissue.age[n_list]+tissue.age[i])
-        MU_list = self.MU*(1-0.5*self.delta*(tissue.properties['mutant'][n_list]+tissue.properties['mutant'][i]))
+        MU_list = self.mu*(1-0.5*self.delta*(tissue.properties['mutant'][n_list]+tissue.properties['mutant'][i]))
         return (vecs*np.repeat((MU_list*(distances-pref_sep))[:,np.newaxis],2,axis=1)).sum(axis=0)
 
 class MutantSpringForce(BasicSpringForceTemp):
 
-    def __init__(self,alpha,MU=MU):
-        BasicSpringForceTemp.__init__(MU)
+    def __init__(self,alpha,mu=MU):
+        BasicSpringForceTemp.__init__(self,mu)
         self.alpha = alpha
 
     def force_i(self,tissue,i):
         distances,vecs,n_list = tissue.mesh.distances[i],tissue.mesh.unit_vecs[i],tissue.mesh.neighbours[i]
         pref_sep = RHO+0.5*GROWTH_RATE*(tissue.age[n_list]+tissue.age[i])
         alpha_i = tissue.properties['mutant'][i]*(self.alpha-1)+1
-        return (vecs*np.repeat((MU/alpha_i*(distances-pref_sep))[:,np.newaxis],2,axis=1)).sum(axis=0)
+        return (vecs*np.repeat((self.mu/alpha_i*(distances-pref_sep))[:,np.newaxis],2,axis=1)).sum(axis=0)
         
 
 def _add_to_list(list_1,to_add):

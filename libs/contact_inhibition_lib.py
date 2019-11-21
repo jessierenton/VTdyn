@@ -5,19 +5,19 @@ import structure
 from structure.global_constants import *
 from structure.cell import Tissue, BasicSpringForceNoGrowth, MutantSpringForce
 import structure.initialisation as init
-
+from structure.global_constants import MU,T_M,ETA
 
 def print_progress(step,N_steps):
     sys.stdout.write("\r %.2f %%"%(step*100/N_steps))
     sys.stdout.flush() 
 
-def simulation_no_division(tissue,dt,N_steps,rand):
+def simulation_no_division(tissue,dt,N_steps,rand,eta=ETA):
     step = 0.
     while True:
         N= len(tissue)
         mesh = tissue.mesh
         step += 1
-        mesh.move_all(tissue.dr(dt))
+        mesh.move_all(tissue.dr(dt,eta))
         tissue.update(dt)
         print_progress(step,N_steps)  
         yield tissue
@@ -94,7 +94,7 @@ def simulation_contact_inhibition_energy_checkpoint_2_stage(tissue,dt,N_steps,st
 def check_area_threshold(mesh,threshold_area_fraction):
     return np.where(mesh.areas > threshold_area_fraction*A0)[0]
     
-def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,til_fix=False,progress_on=False,return_events=False,T_D=T_D,N_limit=np.inf,**kwargs):
+def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,til_fix=False,progress_on=False,return_events=False,T_D=T_D,N_limit=np.inf,eta=ETA,**kwargs):
     yield tissue # start with initial tissue 
     step = 1.
     complete = False
@@ -109,7 +109,7 @@ def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand
         N=len(tissue)
         if N <=16 or N>=N_limit: 
             break
-        mesh.move_all(tissue.dr(dt))
+        mesh.move_all(tissue.dr(dt,eta))
         #cell division     
         division_ready = check_area_threshold(mesh,threshold_area_fraction)
         if rand.rand() < len(division_ready)*division_rate*dt:
@@ -133,7 +133,7 @@ def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand
 def check_separation_threshold(mesh,threshold_separation_fraction):
     return np.where(mesh.areas > threshold_area_fraction*A0)[0]
     
-def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,til_fix=False,progress_on=False,return_events=False,T_D=T_D,N_limit=np.inf,**kwargs):
+def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,til_fix=False,progress_on=False,return_events=False,T_D=T_D,N_limit=np.inf,eta=ETA,**kwargs):
     yield tissue # start with initial tissue 
     step = 1.
     complete = False
@@ -148,7 +148,7 @@ def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand
         N=len(tissue)
         if N <=16 or N>=N_limit: 
             break
-        mesh.move_all(tissue.dr(dt))
+        mesh.move_all(tissue.dr(dt,eta))
         #cell division     
         division_ready = check_area_threshold(mesh,threshold_area_fraction)
         if rand.rand() < len(division_ready)*division_rate*dt:
@@ -169,21 +169,21 @@ def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand
             yield tissue
         else: yield
 
-def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False,progress_on=False,mutant_num=1,ancestors=None,
+def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False,progress_on=False,mutant_num=1,ancestors=None,mu=MU,T_m=T_M,eta=ETA,dt=dt,
         cycle_phase=None,save_areas=False,save_cell_histories=False,tissue=None,force=None,return_events=False,N_limit=np.inf,domain_size_multiplier=1.,**kwargs):
     if tissue is None:
-        if force is None: force = BasicSpringForceNoGrowth()
+        if force is None: force = BasicSpringForceNoGrowth(mu,T_m)
         tissue = init.init_tissue_torus_with_multiplier(N,N,0.01,force,rand,domain_size_multiplier,save_areas=save_areas,save_cell_histories=save_cell_histories)
         if cycle_phase is not None:
             tissue.properties["cycle_phase"] = np.zeros(N*N,dtype=int)
             tissue.properties["transition_age"] = -np.ones(N*N,dtype=float)
         if init_time is not None: 
-            tissue = run_return_final_tissue(simulation(tissue,dt,init_time/dt,timestep/dt,rand,til_fix=False,store_dead=store_dead,**kwargs),init_time/dt)
+            tissue = run_return_final_tissue(simulation(tissue,dt,init_time/dt,timestep/dt,rand,til_fix=False,eta=ETA,progress_on=progress_on,**kwargs),init_time/dt)
             tissue.reset(reset_age=False)
         if mutant_num is not None:
-            tissue.properties['type'] = np.zeros(N*N,dtype=int)
-            tissue.properties['type'][rand.choice(N*N,size=mutant_num,replace=False)]=1
-        if ancestors is not None: tissue.properties['ancestor'] = np.arange(N*N,dtype=int)
+            tissue.properties['type'] = np.zeros(len(tissue),dtype=int)
+            tissue.properties['type'][rand.choice(len(tissue),size=mutant_num,replace=False)]=1
+        if ancestors is not None: tissue.properties['ancestor'] = np.arange(len(tissue),dtype=int)
     if return_events: history = run_return_events(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,**kwargs),timend/dt)
-    else: history = run(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,**kwargs),timend/dt,timestep/dt)
+    else: history = run(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,eta=ETA,**kwargs),timend/dt,timestep/dt)
     return history

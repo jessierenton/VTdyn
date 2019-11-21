@@ -52,7 +52,7 @@ def G_to_S_transition(properties,age,tension_area_product,G_to_S_rate,dt,CIP_fun
         properties['transition_age'][transitions]=age[transitions]        
         return True
 
-def simulation_contact_inhibition_energy_checkpoint_2_stage(tissue,dt,N_steps,stepsize,rand,rates,CIP_parameters=None,CIP_function=None,til_fix=False,progress_on=False,return_events=False,T_D=T_D,stress_threshold=np.inf,N_limit=np.inf,**kwargs):
+def simulation_contact_inhibition_energy_checkpoint_2_stage(tissue,dt,N_steps,stepsize,rand,rates,CIP_parameters=None,CIP_function=None,til_fix=False,progress_on=False,return_events=False,stress_threshold=np.inf,N_limit=np.inf,**kwargs):
     yield tissue # start with initial tissue 
     step = 1.
     complete = False
@@ -94,7 +94,7 @@ def simulation_contact_inhibition_energy_checkpoint_2_stage(tissue,dt,N_steps,st
 def check_area_threshold(mesh,threshold_area_fraction):
     return np.where(mesh.areas > threshold_area_fraction*A0)[0]
     
-def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,til_fix=False,progress_on=False,return_events=False,T_D=T_D,N_limit=np.inf,eta=ETA,**kwargs):
+def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,til_fix=False,progress_on=False,return_events=False,N_limit=np.inf,eta=ETA,**kwargs):
     yield tissue # start with initial tissue 
     step = 1.
     complete = False
@@ -133,7 +133,7 @@ def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand
 def check_separation_threshold(mesh,threshold_separation_fraction):
     return np.where(mesh.areas > threshold_area_fraction*A0)[0]
     
-def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,til_fix=False,progress_on=False,return_events=False,T_D=T_D,N_limit=np.inf,eta=ETA,**kwargs):
+def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,til_fix=False,progress_on=False,return_events=False,N_limit=np.inf,eta=ETA,**kwargs):
     yield tissue # start with initial tissue 
     step = 1.
     complete = False

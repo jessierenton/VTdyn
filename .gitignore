@@ -7,5 +7,6 @@ interaction_data/wints_CD
 *.out
 *.err
 *.log
-log/
+log/*
 *.pdf
+*.png

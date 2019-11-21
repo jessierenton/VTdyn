@@ -11,19 +11,20 @@ import os
 
 """run a single voronoi tessellation model simulation"""
 
-outdir = 'VTcoupled_force_area_data_vary_eta'
+outdir = 'VTcoupled_force_area_data_vary_eta_and_dt'
 dt = 0.005
 if not os.path.exists(outdir): # if the outdir doesn't exist create it
      os.makedirs(outdir)
 
 def run_sim(eta):
-    print(eta)
+    dt=min(0.005,0.005*eta)
+    print(eta,dt)
     rand = np.random.RandomState()
-    history = lib.run_simulation_vary_eta(simulation,l,timestep,timend,rand,eta,dt,til_fix=False,save_areas=True)
+    history = lib.run_simulation_vary_eta(simulation,l,timestep,timend,rand,eta,dt,til_fix=False,save_areas=True,progress_on=True)
     return (data.mean_force(history,False),data.mean_area(history,False))
 
 l = 10 # population size N=l*l
-timend = 1000 # simulation time (hours)
+timend = 200 # simulation time (hours)
 timestep = 1. # time intervals to save simulation history
 
 rand = np.random.RandomState()
@@ -31,12 +32,12 @@ simulation = lib.simulation_ancestor_tracking  #simulation routine imported from
 
 pool = Pool(maxtasksperchild=1000) # creating a pool of workers to run simulations in parallel
 
-eta_vals = np.array((0.7,0.8,0.9,0.95,1.0,2.0,5.0,10.0,50.0,500.),dtype=float)
+eta_vals = np.array((0.2,0.4,0.6,0.8,1.0),dtype=float)
 hdata = {"eta":np.repeat(eta_vals,int(timend/timestep+1)),"time":np.tile(np.linspace(0,timend,timend/timestep+1),len(eta_vals))}
 fa_data = np.array([fa_d for fa_d in pool.imap(run_sim,eta_vals)])
 
 hdata["force"] = (fa_data[:,0,:]).flatten()
-hdata["area"] = (fa_data[:,1,:]).flatten()
+# hdata["area"] = (fa_data[:,1,:]).flatten()
 
 df = pd.DataFrame(data=hdata)
 

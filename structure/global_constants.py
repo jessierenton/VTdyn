@@ -1,30 +1,12 @@
-global T_D,T_G1, T_other, T_M,V_G1, min_G1, L0, EPS,MU,ETA,dt, r_max
+global T_D,T_M,L0,EPS,MU,ETA,dt
 
-#cell-cycle times hours
-T_G1, T_other = 2,10
-# V_G1 = 1 #variance in G1-time
-# min_G1 = 0.01 #min G1-time
-T_D = 12.0
-T_M = 1.0
+T_M = None
 
 L0 = 1.0
 A0 = 3**0.5/2.
 EPS = 0.05
 
-# Osborne 2017 params
-MU = 5.
+# Osborne 2017 params (scaled)
+MU = 6.25
 ETA = 1.0
-dt = 0.005 #hours
-
-# Mirams 2012 params
-# MU = -30.
-# ETA = 1.
-# dt = 1./120
-
-
-# r_max = 2.5 #prevents long edges forming in delaunay tri for border tissue
-
-# RHO = 1.0
-# RHO_B = 2**0.5*RHO
-# GROWTH_RATE = (RHO_B-RHO)/(T_G1+T_other)
-# DIV_AREA = 3**0.5/2*RHO_B**2
+dt = 0.04 #hours

@@ -11,10 +11,10 @@ import sys,os
 import itertools 
 
 L = 14 # population size N=l*l
-TIMEND = 10. # simulation time (hours)
+TIMEND = 7200. # simulation time (hours)
 MAX_POP_SIZE = 1000
-TIMESTEP = 10. # time intervals to save simulation history
-DEATH_RATE = 1./12
+TIMESTEP = 96. # time intervals to save simulation history
+DEATH_RATE = 0.25/24.
 INIT_TIME = None
 
 S0 = 1.
@@ -27,7 +27,7 @@ for d in DATA_SAVE_FIELDS:
     if d not in data.FIELDS_DICT:
         raise ValueError("not all data types are correct")
 
-PARENTDIR = "CIP_data_area_threshold/densities_fixed_domain_15"
+PARENTDIR = "CIP_data_area_threshold/densities_fixed_domain_14"
 
 with open(PARENTDIR+'/info',"w") as f:
     f.write('death_rate = %.3f\n'%DEATH_RATE)
@@ -59,7 +59,7 @@ def run_parallel(threshold_area_fraction_vals,death_to_birth_rate_ratio_vals,idx
                 for threshold_area_fraction,death_to_birth_rate_ratio in itertools.product(threshold_area_fraction_vals,death_to_birth_rate_ratio_vals)]
     pool.map(run_single_unpack,args)
 
-threshold_area_fraction_vals = np.linspace(0.4,1.8,16)
+threshold_area_fraction_vals = np.linspace(0.4,1.9,16)
 death_to_birth_rate_ratio_vals = np.linspace(0.1,0.8,8) 
 
 idx = int(sys.argv[1])

@@ -27,7 +27,8 @@ def set_heatmap_colours(heat_map,palette=None,return_palette_only=False):
         data_bins = np.digitize(data,bin_bounds)-1
         return palette[data_bins],palette,bin_bounds
 
-def set_key_palette(key,history=None,tissue=None):
+def set_key_palette(key,history=None,tissue=None,palette=None):
+    if palette is not None: return palette
     if history is not None: 
         key_max = max((max(tissue.properties[key]) for tissue in history))
     elif tissue is not None:
@@ -98,9 +99,13 @@ def plot_centres(tissue,ax=None,time = None,label=False,palette=DEFAULT_PALETTE)
     plt.show()
 
 def create_axes(tissue,figsize=None):
-    width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111)
+    set_ax(tissue,ax)
+    return fig,ax
+
+def set_ax(tissue,ax):
+    width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
     minx, miny, maxx, maxy = -width/2,-height/2,width/2,height/2
     w, h = maxx - minx, maxy - miny
     ax.set_xlim(minx - 0.2 * w, maxx + 0.2 * w)
@@ -109,14 +114,22 @@ def create_axes(tissue,figsize=None):
     ax.set_axis_off()
     ax.set_xticks([])
     ax.set_yticks([])
-    return fig,ax
+
+def multi_torus_plot(tissue_list,nrows,ncols,param_name=None,param_vals=None,fmt='%.1f',figsize=None):
+    fig,axes = plt.subplots(nrows,ncols,figsize=figsize)
+    for ax,tissue,param in zip(axes.flatten(),tissue_list,param_vals):
+        set_ax(tissue,ax)
+        torus_plot(tissue,ax=ax,lw=1.5)
+        if param_name is not None and param_vals is not None:
+            ax.set_title(param_name+fmt%param)
+    plt.subplots_adjust(left=0.0,right=1.0,bottom=0.0,top=1.0,wspace=0.0,hspace=0.0)
     
 def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None,animate=False,
-                heat_map=None,plot_vals=None,textcolor='black',figsize=None,lw=2.5,edgecolor='k'):
+                heat_map=None,plot_vals=None,textcolor='black',figsize=None,lw=2.5,edgecolor='k',time=False):
     """plot tissue object with torus geometry
     args
     ---------------
-    tissue: to plot
+    tissue: to plot,r'
     palette: array of colors
     key: (str) color code cells by key. must match a tissue.properties key, e.g. type, ancestors
     key_label: (bool) plot key vals if True
@@ -167,25 +180,27 @@ def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show
     if cell_ids:
         ids = tissue.cell_ids
         for i, coords in enumerate(tissue.mesh.centres):
-            ax.text(coords[0],coords[1],str(ids[i]),color=textcolor)
+            ax.text(coords[0],coords[1],str(ids[i]),color=textcolor,ha='center',va='center')
     if mesh_ids:
         for i, coords in enumerate(tissue.mesh.centres):
-            ax.text(coords[0],coords[1],str(i),color=textcolor)
+            ax.text(coords[0],coords[1],str(i),color=textcolor,ha='center',va='center')
     if areas:
         for area, coords in zip(tissue.mesh.areas,tissue.mesh.centres):
-            ax.text(coords[0],coords[1],'%.2f'%area,color=textcolor)
+            ax.text(coords[0],coords[1],'%.2f'%area,color=textcolor,ha='center',va='center')
     if key_label is True:
         for id, coords in zip(tissue.properties[key],tissue.mesh.centres):
-            ax.text(coords[0],coords[1],str(id),color=textcolor)
+            ax.text(coords[0],coords[1],str(id),color=textcolor,ha='center',va='center')
     if plot_vals is not None:
         data,fmt = plot_vals[0],plot_vals[1]
         for val,coords in zip(data,tissue.mesh.centres):
-            ax.text(coords[0],coords[1],fmt%val,color=textcolor)
+            ax.text(coords[0],coords[1],fmt%val,color=textcolor,ha='center',va='center')
     if boundary: 
         ax.add_patch(patches.Rectangle((-width/2,-height/2),width,height,fill=False,linewidth=1.5))
+    if time is not None:
+        ax.text(0.5,0.,r'$t=%5.1f$ hours'%(tissue.time),transform=ax.transAxes,ha="center")
     if not animate: return ax
 
-def animate_torus(history, key = None, heat_map=None, savefile=None, index=None, delete_images=True,imagedir='images'):
+def animate_torus(history, key = None, heat_map=None, savefile=None, index=None, delete_images=True,imagedir='images',pause=0.001,palette=None,time=False):
     """view animation of tissue history with torus geometry
     args: 
     --------------- 
@@ -203,11 +218,9 @@ def animate_torus(history, key = None, heat_map=None, savefile=None, index=None,
         frames=[]
         i = 0
     if key is not None:
-        palette = set_key_palette(key,history=history)
+        palette = set_key_palette(key,history=history,palette=palette)
     elif heat_map is not None: 
         palette = set_heatmap_colours(heat_map,return_palette_only=True)
-    else: 
-        palette = np.array(DEFAULT_PALETTE)
     heat_map_multi = heat_map
     for i,tissue in enumerate(history):
         if heat_map_multi is not None:
@@ -217,13 +230,17 @@ def animate_torus(history, key = None, heat_map=None, savefile=None, index=None,
             for c in ax.collections:
                 c.remove()
         except TypeError: pass
-        torus_plot(tissue,palette,key=key,heat_map=heat_map,ax=ax,fig=fig,animate=True)
+        try:
+            for t in ax.texts:
+                t.remove()
+        except TypeError: pass
+        torus_plot(tissue,palette,key=key,heat_map=heat_map,ax=ax,fig=fig,animate=True,time=time)
         if savefile is not None:
             frame="%s/image%05i.png" % (imagedir,i)
             fig.savefig(frame,dpi=500)
             frames.append(frame)
             i+=1
-        else: plt.pause(0.001)
+        else: plt.pause(pause)
     if savefile is not None:
         if index is not None: savefile += str(index)
         os.system("mencoder 'mf://%s/image*.png' -mf type=png:fps=20 -ovc lavc -lavcopts vcodec=wmv2 -oac copy  -o %s.mpg" %(imagedir,savefile))

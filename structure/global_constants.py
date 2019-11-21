@@ -12,7 +12,7 @@ A0 = 3**0.5/2.
 EPS = 0.05
 
 # Osborne 2017 params
-MU = -50.
+MU = 5.
 ETA = 1.0
 dt = 0.005 #hours
 

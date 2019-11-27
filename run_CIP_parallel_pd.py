@@ -59,8 +59,8 @@ def run_single(i):
     if i%100==0: sys.stdout.write(str(i)+'    ')
     rand = np.random.RandomState()
     history = lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,progress_on=False,
-                init_time=INIT_TIME,til_fix=False,save_areas=True,
-                return_events=False,save_cell_histories=True,N_limit=MAX_POP_SIZE,DELTA=DELTA,game=game,game_constants=game_constants,mutant_num=1,
+                init_time=INIT_TIME,til_fix=True,save_areas=True,
+                return_events=False,save_cell_histories=False,N_limit=MAX_POP_SIZE,DELTA=DELTA,game=game,game_constants=game_constants,mutant_num=1,
                 domain_size_multiplier=domain_size_multiplier,rates=rates,threshold_area_fraction=threshold_area_fraction)
     return fixed(history,i)
     

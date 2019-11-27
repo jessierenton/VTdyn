@@ -31,6 +31,24 @@ def run_return_events(simulation,N_step):
 def run_return_final_tissue(simulation,N_step):
     return next(itertools.islice(simulation,N_step,None))
 
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------PRISONER'S-DILEMMA----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def prisoners_dilemma_averaged(cell_type,neighbour_types,b,c):
+    """calculate average payoff for single cell"""
+    return -c*cell_type+b*np.sum(neighbour_types)/len(neighbour_types)
+
+def prisoners_dilemma_accumulated(cell_type,neighbour_types,b,c):
+    """calculate accumulated payoff for single cell"""
+    return -c*cell_type*len(neighbour_types)+b*np.sum(neighbour_types)
+
+def get_fitness(cell_type,neighbour_types,DELTA,game,game_constants):
+    """calculate fitness of single cell"""
+    return 1+DELTA*game(cell_type,neighbour_types,*game_constants)
+
+def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_constants):
+    """calculate fitnesses of all cells"""
+    return np.array([get_fitness(types[cell],types[neighbours],DELTA,game,game_constants) for cell,neighbours in enumerate(neighbours_by_cell)])
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #------------------------------------------POISSON-BIRTH-DEATH----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -93,47 +111,11 @@ def simulation_contact_inhibition_energy_checkpoint_2_stage(tissue,dt,N_steps,st
 
 def check_area_threshold(mesh,threshold_area_fraction):
     return np.where(mesh.areas > threshold_area_fraction*A0)[0]
-    
-def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,til_fix=False,progress_on=False,return_events=False,N_limit=np.inf,eta=ETA,**kwargs):
-    yield tissue # start with initial tissue 
-    step = 1.
-    complete = False
-    properties = tissue.properties
-    mesh = tissue.mesh
-    death_rate,division_rate = rates
-    while not til_fix or not complete:
-        event_occurred = False
-        if progress_on: 
-            print_progress(step,N_steps)
-            step += 1
-        N=len(tissue)
-        if N <=16 or N>=N_limit: 
-            break
-        mesh.move_all(tissue.dr(dt,eta))
-        #cell division     
-        division_ready = check_area_threshold(mesh,threshold_area_fraction)
-        if rand.rand() < len(division_ready)*division_rate*dt:
-            mother = rand.choice(division_ready)
-            tissue.add_daughter_cells(mother,rand)
-            tissue.remove(mother,True)
-            event_occurred = True  
-        #cell_death
-        N = len(tissue)
-        if death_rate is not None:  
-            if rand.rand() < N*death_rate*dt:
-                tissue.remove(rand.randint(N),False)   
-                event_occurred = True   	
-        tissue.update(dt)
-        if til_fix: 
-            complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0
-        if not return_events or event_occurred: 
-            yield tissue
-        else: yield
 
 def check_separation_threshold(mesh,threshold_separation_fraction):
     return np.where(mesh.areas > threshold_area_fraction*A0)[0]
     
-def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,til_fix=False,progress_on=False,return_events=False,N_limit=np.inf,eta=ETA,**kwargs):
+def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,til_fix=False,progress_on=False,return_events=False,N_limit=np.inf,eta=ETA,DELTA=None,game=None,game_constants=None,**kwargs):
     yield tissue # start with initial tissue 
     step = 1.
     complete = False
@@ -152,7 +134,12 @@ def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand
         #cell division     
         division_ready = check_area_threshold(mesh,threshold_area_fraction)
         if rand.rand() < len(division_ready)*division_rate*dt:
-            mother = rand.choice(division_ready)
+            if game is None:
+                mother = rand.choice(division_ready)
+            else:
+                fitnesses = np.array([get_fitness(properties['type'][cell],properties['type'][mesh.neighbours[cell]],DELTA,game,game_constants) 
+                                for cell in division_ready])
+                mother = rand.choice(division_ready,p=fitnesses/sum(fitnesses))
             tissue.add_daughter_cells(mother,rand)
             tissue.remove(mother,True)
             event_occurred = True  
@@ -169,7 +156,7 @@ def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand
             yield tissue
         else: yield
 
-def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False,progress_on=False,mutant_num=1,ancestors=None,mu=MU,T_m=T_M,eta=ETA,dt=dt,
+def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False,progress_on=False,mutant_num=1,ancestors=None,mu=MU,T_m=T_M,eta=ETA,dt=dt,DELTA=None,game=None,game_constants=None,
         cycle_phase=None,save_areas=False,save_cell_histories=False,tissue=None,force=None,return_events=False,N_limit=np.inf,domain_size_multiplier=1.,**kwargs):
     if tissue is None:
         if force is None: force = BasicSpringForceNoGrowth(mu,T_m)
@@ -184,6 +171,6 @@ def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False
             tissue.properties['type'] = np.zeros(len(tissue),dtype=int)
             tissue.properties['type'][rand.choice(len(tissue),size=mutant_num,replace=False)]=1
         if ancestors is not None: tissue.properties['ancestor'] = np.arange(len(tissue),dtype=int)
-    if return_events: history = run_return_events(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,**kwargs),timend/dt)
-    else: history = run(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,eta=ETA,**kwargs),timend/dt,timestep/dt)
+    if return_events: history = run_return_events(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt)
+    else: history = run(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,eta=ETA,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt,timestep/dt)
     return history

@@ -9,8 +9,9 @@ from scipy.spatial import Voronoi, Delaunay
 from descartes.patch import PolygonPatch
 import os
 
-DEFAULT_PALETTE = np.array(sns.color_palette())
 beige = '#F4EDD6'
+DEFAULT_PALETTE = np.array((beige,'#688A87','#FF70C3'))
+
 #functions for plotting and animating tissue objects/histories
 
 def set_heatmap_colours(heat_map,palette=None,return_palette_only=False):
@@ -52,7 +53,7 @@ def plot_colour_bar(fig,palette,bin_bounds):
     for r in rects:
         ax.add_patch(r)
             
-def plot_tri_torus(tissue,fig=None,ax=None,time = None,label=False,node_colour='k',line_colour=DEFAULT_PALETTE[3],lw=2):
+def plot_tri_torus(tissue,fig=None,ax=None,time = None,label=False,node_colour='k',line_colour='k',lw=2):
     """plot Delaunay triangulation of a tissue object (i.e. cell centres and neighbour connections) with torus geometry"""
     width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
     if ax is None: 
@@ -196,7 +197,7 @@ def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show
             ax.text(coords[0],coords[1],fmt%val,color=textcolor,ha='center',va='center')
     if boundary: 
         ax.add_patch(patches.Rectangle((-width/2,-height/2),width,height,fill=False,linewidth=1.5))
-    if time is not None:
+    if time:
         ax.text(0.5,0.,r'$t=%5.1f$ hours'%(tissue.time),transform=ax.transAxes,ha="center")
     if not animate: return ax
 

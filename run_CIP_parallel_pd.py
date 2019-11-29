@@ -14,11 +14,12 @@ threshold_area_fraction = float(sys.argv[1])
 death_to_birth_rate_ratio =  float(sys.argv[2])
 domain_size_multiplier = float(sys.argv[3])
 b = float(sys.argv[4])
+job_id = sys.argv[5]
 
-NUMBER_SIMS = 10000
+NUMBER_SIMS = 100
 DELTA = 0.025
 L = 10 # population size N=l*l
-TIMEND = 80000. # simulation time (hours)
+TIMEND = 800. # simulation time (hours)
 MAX_POP_SIZE = 1000
 TIMESTEP = 96. # time intervals to save simulation history
 DEATH_RATE = 0.25/24.
@@ -56,22 +57,23 @@ def run_single_unpack(args):
 
 def run_single(i):
     """run a single voronoi tessellation model simulation"""
-    if i%100==0: sys.stdout.write(str(i)+'    ')
+    sys.stdout.write('started '+str(i)+'\n')
+    sys.stdout.flush() 
     rand = np.random.RandomState()
-    history = lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,progress_on=False,
+    history = lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,progress_on=True,
                 init_time=INIT_TIME,til_fix=True,save_areas=True,
                 return_events=False,save_cell_histories=False,N_limit=MAX_POP_SIZE,DELTA=DELTA,game=game,game_constants=game_constants,mutant_num=1,
                 domain_size_multiplier=domain_size_multiplier,rates=rates,threshold_area_fraction=threshold_area_fraction)
+    sys.stdout.write('completed '+str(i)+'after %d hours \n'%(history[-1].time))
     return fixed(history,i)
     
 def run_parallel():
     pool = Pool(cpu_count()-1,maxtasksperchild=1000)
     fixation = np.array([f for f in pool.imap(run_single,range(NUMBER_SIMS))]) 
-    with open(PARENTDIR+'b%.1f'%b,'w') as wfile:    
+    with open(PARENTDIR+'b%.1f_%s'%(b,job_id),'a') as wfile:    
         fixed = len(np.where(fixation==1)[0])
         lost = len(np.where(fixation==0)[0])
         incomplete = len(np.where(fixation==-1)[0])
         wfile.write('%d    %d    %d\n'%(fixed,lost,incomplete))
-
 
 run_parallel()  

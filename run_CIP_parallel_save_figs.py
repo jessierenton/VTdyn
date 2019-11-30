@@ -14,10 +14,10 @@ import seaborn as sns
 import libs.plot as vplt
 
 L = 10 # population size N=l*l
-TIMEND = 101. # simulation time (hours)
+TIMEND = 96*5. # simulation time (hours)
 MAX_POP_SIZE = 500
-TIMESTEP = 50. # time intervals to save simulation history
-DEATH_RATE = 1./24
+TIMESTEP = 96. # time intervals to save simulation history
+DEATH_RATE = 0.25/24
 INIT_TIME = None
 
 # DATA_SAVE_FIELDS = ["pop_size","cell_histories","cycle_phases","density",
@@ -54,17 +54,16 @@ def run_single(i,threshold_area_fraction,death_to_birth_rate_ratio,domain_size_m
                     "width":history[0].mesh.geometry.width},i)
     return history
     
-def run_parallel(paramfile,repeats):
-    pool = Pool(cpu_count()-1,maxtasksperchild=1000)
+def run_multi(paramfile,repeats):
     parameters = np.loadtxt(paramfile)
     args = [(i,threshold,death_rate,domain_size_multiplier) 
                         for threshold,death_rate,domain_size_multiplier in parameters
                         for i in range(repeats)]
-    return pool.map(run_single_unpack,args),parameters.T[0]
+    return map(run_single_unpack,args),parameters.T[0]
 
 paramfile = "params0.txt"
 repeats = 1 
-histories,threshold_vals = run_parallel(paramfile,repeats)
+histories,threshold_vals = run_multi(paramfile,repeats)
 tissue_list = [history[-1] for history in histories]          
-vplt.multi_torus_plot(tissue_list,2,5,r'$\alpha = $',threshold_vals,figsize=(10,5))
+vplt.multi_torus_plot(tissue_list,2,3,r'$\alpha = $',threshold_vals,figsize=(8,5))
 plt.savefig('tissues_varying_area_threshold',bbox_inches="tight")

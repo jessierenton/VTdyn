@@ -32,7 +32,7 @@ PARENTDIR = "CIP_data_area_threshold/densities_fixed_domain_14"
 with open(PARENTDIR+'/info',"w") as f:
     f.write('death_rate = %.3f\n'%DEATH_RATE)
     f.write('initial pop size = %3d\n'%(L*L))
-    f.write('domain width = %3.1g\n'%(L*L*S0))
+    f.write('domain width = %.1f\n'%(L*S0))
     f.write('timestep = %.1f'%TIMESTEP)
 simulation = lib.simulation_contact_inhibition_area_dependent  #simulation routine imported from lib
 

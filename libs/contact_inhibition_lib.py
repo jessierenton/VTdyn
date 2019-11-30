@@ -152,7 +152,6 @@ def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand
         tissue.update(dt)
         if til_fix: 
             complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0
-            if complete: import ipdb; ipdb.set_trace()
         if not return_events or event_occurred: 
             yield tissue
         else: yield

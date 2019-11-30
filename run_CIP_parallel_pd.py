@@ -35,9 +35,9 @@ simulation = lib.simulation_contact_inhibition_area_dependent
 rates = (DEATH_RATE,DEATH_RATE/death_to_birth_rate_ratio)
 
 with open(PARENTDIR+'info',"w") as f:
-    f.write('death_rate = %.3f\n'%DEATH_RATE)
+    f.write('death_rate = %.6f\n'%DEATH_RATE)
     f.write('initial pop size = %3d\n'%(L*L))
-    f.write('domain width = %3.1g\n'%(L*L*domain_size_multiplier))
+    f.write('domain width = %.1f\n'%(L*domain_size_multiplier))
     f.write('quiescent area ratio = %.1f'%threshold_area_fraction)
     f.write('death to birth rate ratio = %.2f'%death_to_birth_rate_ratio)
     f.write('timestep = %.1f'%TIMESTEP)
@@ -60,11 +60,12 @@ def run_single(i):
     sys.stdout.write('started '+str(i)+'\n')
     sys.stdout.flush() 
     rand = np.random.RandomState()
-    history = lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,progress_on=True,
+    history = lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,progress_on=False,
                 init_time=INIT_TIME,til_fix=True,save_areas=True,
                 return_events=False,save_cell_histories=False,N_limit=MAX_POP_SIZE,DELTA=DELTA,game=game,game_constants=game_constants,mutant_num=1,
                 domain_size_multiplier=domain_size_multiplier,rates=rates,threshold_area_fraction=threshold_area_fraction)
-    sys.stdout.write('completed '+str(i)+'after %d hours \n'%(history[-1].time))
+    sys.stdout.write('completed '+str(i)+' after %d hours \n'%(history[-1].time))
+    sys.stdout.flush()
     return fixed(history,i)
     
 def run_parallel():

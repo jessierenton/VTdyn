@@ -16,7 +16,8 @@ domain_size_multiplier = float(sys.argv[3])
 b = float(sys.argv[4])
 job_id = sys.argv[5]
 
-NUMBER_SIMS = 1000
+NUMBER_SIMS = 10000
+BATCH_SIZE = 1000
 DELTA = 0.025
 L = 10 # population size N=l*l
 TIMEND = 80000. # simulation time (hours)
@@ -71,10 +72,14 @@ def run_single(i):
 def run_parallel():
     pool = Pool(cpu_count()-1,maxtasksperchild=1000)
     fixation = np.array([f for f in pool.imap(run_single,range(NUMBER_SIMS))]) 
-    with open(PARENTDIR+'b%.1f_%s'%(b,job_id),'a') as wfile:    
-        fixed = len(np.where(fixation==1)[0])
-        lost = len(np.where(fixation==0)[0])
-        incomplete = len(np.where(fixation==-1)[0])
-        wfile.write('%d    %d    %d\n'%(fixed,lost,incomplete))
+    with open(PARENTDIR+'b%.1f_%s'%(b,job_id),'w') as wfile:    
+        if NUMBER_SIMS%BATCH_SIZE != 0: 
+            BATCH_SIZE=1
+        fixation.reshape((NUMBER_SIMS/BATCH_SIZE,BATCH_SIZE))
+        for fixation_batch in fixation
+            fixed = len(np.where(fixation_batch==1)[0])
+            lost = len(np.where(fixation_batch==0)[0])
+            incomplete = len(np.where(fixation_batch==-1)[0])
+            wfile.write('%d    %d    %d\n'%(fixed,lost,incomplete))
 
 run_parallel()  

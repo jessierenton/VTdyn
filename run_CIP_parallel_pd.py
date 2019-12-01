@@ -74,9 +74,12 @@ def run_parallel():
     fixation = np.array([f for f in pool.imap(run_single,range(NUMBER_SIMS))]) 
     with open(PARENTDIR+'b%.1f_%s'%(b,job_id),'w') as wfile:    
         if NUMBER_SIMS%BATCH_SIZE != 0: 
-            BATCH_SIZE=1
-        fixation.reshape((NUMBER_SIMS/BATCH_SIZE,BATCH_SIZE))
-        for fixation_batch in fixation
+            batch_size=1
+        else: 
+            batch_size = BATCH_SIZE
+        fixation = fixation.reshape((NUMBER_SIMS/batch_size,batch_size))
+        import ipdb; ipdb.set_trace()
+        for fixation_batch in fixation:
             fixed = len(np.where(fixation_batch==1)[0])
             lost = len(np.where(fixation_batch==0)[0])
             incomplete = len(np.where(fixation_batch==-1)[0])

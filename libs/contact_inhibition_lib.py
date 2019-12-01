@@ -31,6 +31,21 @@ def run_return_events(simulation,N_step):
 def run_return_final_tissue(simulation,N_step):
     return next(itertools.islice(simulation,N_step,None))
 
+def run_til_fix(simulation,N_step,skip):
+    return [tissue.copy() for tissue in generate_til_fix(simulation,N_step,skip)]
+        
+def fixed(tissue):
+    return (1 not in tissue.properties['type'] or 0 not in tissue.properties['type'])
+
+def generate_til_fix(simulation,N_step,skip):
+    for tissue in itertools.islice(simulation,0,N_step,skip):
+        if not fixed(tissue):
+            yield tissue
+        else:
+            yield tissue
+            break
+
+
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #------------------------------------------PRISONER'S-DILEMMA----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -115,14 +130,13 @@ def check_area_threshold(mesh,threshold_area_fraction):
 def check_separation_threshold(mesh,threshold_separation_fraction):
     return np.where(mesh.areas > threshold_area_fraction*A0)[0]
     
-def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,til_fix=False,progress_on=False,return_events=False,N_limit=np.inf,eta=ETA,DELTA=None,game=None,game_constants=None,**kwargs):
+def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,progress_on=False,return_events=False,N_limit=np.inf,eta=ETA,DELTA=None,game=None,game_constants=None,**kwargs):
     yield tissue # start with initial tissue 
     step = 0.
-    complete = False
     properties = tissue.properties
     mesh = tissue.mesh
     death_rate,division_rate = rates
-    while not til_fix or not complete:
+    while True:
         event_occurred = False
         if progress_on: 
             print_progress(step,N_steps)
@@ -150,8 +164,6 @@ def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand
                 tissue.remove(rand.randint(N),False)   
                 event_occurred = True   	
         tissue.update(dt)
-        if til_fix: 
-            complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0
         if not return_events or event_occurred: 
             yield tissue
         else: yield
@@ -172,5 +184,6 @@ def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False
             tissue.properties['type'][rand.choice(len(tissue),size=mutant_num,replace=False)]=1
         if ancestors is not None: tissue.properties['ancestor'] = np.arange(len(tissue),dtype=int)
     if return_events: history = run_return_events(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt)
+    elif til_fix: history = run_til_fix(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt,timestep/dt)
     else: history = run(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,eta=ETA,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt,timestep/dt)
     return history

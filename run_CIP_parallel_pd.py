@@ -16,10 +16,10 @@ domain_size_multiplier = float(sys.argv[3])
 b = float(sys.argv[4])
 job_id = sys.argv[5]
 
-NUMBER_SIMS = 100
+NUMBER_SIMS = 1000
 DELTA = 0.025
 L = 10 # population size N=l*l
-TIMEND = 800. # simulation time (hours)
+TIMEND = 80000. # simulation time (hours)
 MAX_POP_SIZE = 1000
 TIMESTEP = 96. # time intervals to save simulation history
 DEATH_RATE = 0.25/24.

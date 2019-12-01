@@ -11,7 +11,7 @@ from structure.cell import Tissue, BasicSpringForceNoGrowth
 l = 10 # population size N=l*l
 timend = 300. # simulation time (hours)
 timestep = 96. # time intervals to save simulation history
-init_time = 96
+init_time = None
 
 rand = np.random.RandomState(128) 
 simulation = lib.simulation_contact_inhibition_area_dependent  #simulation routine imported from lib

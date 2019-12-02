@@ -78,7 +78,6 @@ def run_parallel():
         else: 
             batch_size = BATCH_SIZE
         fixation = fixation.reshape((NUMBER_SIMS/batch_size,batch_size))
-        import ipdb; ipdb.set_trace()
         for fixation_batch in fixation:
             fixed = len(np.where(fixation_batch==1)[0])
             lost = len(np.where(fixation_batch==0)[0])

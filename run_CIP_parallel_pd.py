@@ -58,16 +58,16 @@ def run_single_unpack(args):
 
 def run_single(i):
     """run a single voronoi tessellation model simulation"""
-    sys.stdout.write('started '+str(i)+'\n')
     sys.stdout.flush() 
     rand = np.random.RandomState()
     history = lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,progress_on=False,
                 init_time=INIT_TIME,til_fix=True,save_areas=True,
                 return_events=False,save_cell_histories=False,N_limit=MAX_POP_SIZE,DELTA=DELTA,game=game,game_constants=game_constants,mutant_num=1,
                 domain_size_multiplier=domain_size_multiplier,rates=rates,threshold_area_fraction=threshold_area_fraction)
-    sys.stdout.write('completed '+str(i)+' after %d hours \n'%(history[-1].time))
-    sys.stdout.flush()
-    return fixed(history,i)
+    fixation = fixed(history,i)
+    with open(PARENTDIR+'b%.1f_%s_time'%(b,job_id),'w') as wfile:
+        wfile.write('%5d    %5d    %d'%(i,history[-1].time,fixation))
+    return fixation
     
 def run_parallel():
     pool = Pool(cpu_count()-1,maxtasksperchild=1000)

@@ -65,7 +65,7 @@ def run_single(i):
                 return_events=False,save_cell_histories=False,N_limit=MAX_POP_SIZE,DELTA=DELTA,game=game,game_constants=game_constants,mutant_num=1,
                 domain_size_multiplier=domain_size_multiplier,rates=rates,threshold_area_fraction=threshold_area_fraction)
     fixation = fixed(history,i)
-    with open(PARENTDIR+'b%.1f_%s_time'%(b,job_id),'a') as wfile:
+    with open(PARENTDIR+'b%.2f_%s_time'%(b,job_id),'a') as wfile:
         wfile.write('%5d    %5d    %d\n'%(i,history[-1].time,fixation))
     return fixation
     

@@ -7,4 +7,4 @@ p4=`(sed -n "$number"p $PARAMFILE) | awk '{print $4}'`
 
 source /local/jrenton/anaconda2/my_anaconda.sh
 
-python run_CIP_parallel_pd.py $p1 $p2 $p3 $p4 11 
+nice -19 python run_CIP_parallel_pd.py $p1 $p2 $p3 $p4 11 

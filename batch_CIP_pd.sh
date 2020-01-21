@@ -1,9 +1,8 @@
 #!/bin/bash
-#SBATCH --cpus-per-task=64
-#SBATCH --array=0-12
+#SBATCH --cpus-per-task=88
+#SBATCH --array=0-6
 #SBATCH --nodes=1
-#SBATCH --nodelist = hpc[10-13]
-PARAMFILE=pd_params$1
+PARAMFILE=pd_params3/p$1
 number=$(($SLURM_ARRAY_TASK_ID+1))
 p1=`(sed -n "$number"p $PARAMFILE) | awk '{print $1}'`
 p2=`(sed -n "$number"p $PARAMFILE) | awk '{print $2}'`

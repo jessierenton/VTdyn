@@ -66,12 +66,47 @@ class Tissue(object):
         self.age += dt      
         self.time += dt
     
-    def update_cell_histories(self,idx_list,divided):
+    def get_neighbour_cell_ids(self,idx_list,aslists=False):
+        if aslists:
+            try: 
+                return self.cell_ids[self.mesh.neighbours[idx_list]].tolist()
+            except TypeError:
+                return [self.cell_ids[self.mesh.neighbours[i]].tolist() for i in idx_list]
+        else:
+            try: 
+                return self.cell_ids[self.mesh.neighbours[idx_list]]
+            except TypeError:
+                return [self.cell_ids[self.mesh.neighbours[i]] for i in idx_list]
+    
+    def get_next_nearest_neighbour_cell_ids(self,idx_list,aslists=False):
+        if aslists: 
+            try:
+               return self.cell_ids[self.mesh.next_nearest_neighbours(idx_list)].tolist()
+            except TypeError:
+               return [self.cell_ids[self.mesh.next_nearest_neighbours(i)].tolist() for i in idx_list]
+        else:
+            try:
+                return self.cell_ids[self.mesh.next_nearest_neighbours(idx_list)]
+            except TypeError:
+                return [self.cell_ids[self.mesh.next_nearest_neighbours(i)] for i in idx_list]
+    
+    def update_cell_histories(self,idx_list,divided,position=True,neighbour_data=True):
         if self.cell_histories == {}:
             self.cell_histories.update({'time':[],'cell_ids':[],'age':[],'divided':[]})
             try: self.cell_histories.update({'area':[]}) 
             except KeyError: pass 
+            if position:
+                self.cell_histories.update({'position':None})
+            if neighbour_data:
+                self.cell_histories.update({'nn':[]})
+                self.cell_histories.update({'nextnn':[]})
+                self.cell_histories.update({'mother':[]})
             self.cell_histories.update({key:[] for key in self.properties.keys()})
+        try: 
+            len(idx_list)
+            idx_list = np.array(idx_list)
+        except TypeError:
+            pass            
         for key,valist in self.cell_histories.iteritems():
             if key == 'time':
                 try:
@@ -86,6 +121,17 @@ class Tissue(object):
                 _add_to_list(valist,divided)
             elif key == 'area':
                 _add_to_list(valist,self.mesh.areas[idx_list])
+            elif key == 'mother':
+                _add_to_list(valist,self.mother[idx_list])
+            elif key == 'nn':
+                _add_lists_to_list(valist,self.get_neighbour_cell_ids(idx_list,True))
+            elif key == 'nextnn':
+                _add_lists_to_list(valist,self.get_next_nearest_neighbour_cell_ids(idx_list,True))
+            elif key == 'position':
+                if valist is None:
+                    self.cell_histories['position'] = self.mesh.centres[idx_list]
+                else:
+                    self.cell_histories['position'] = np.vstack((valist,self.mesh.centres[idx_list]))
             else:
                 _add_to_list(valist,self.properties[key][idx_list])
         
@@ -255,3 +301,9 @@ def _add_to_list(list_1,to_add):
         list_1.extend(to_add)
     except TypeError:
         list_1.append(to_add)
+        
+def _add_lists_to_list(list_1,to_add):
+    if isinstance(to_add[0],int):
+        list_1.append(to_add)
+    else: list_1.extend(to_add)
+

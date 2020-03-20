@@ -157,6 +157,9 @@ def cell_histories(history,start_time=0.0):
         time = np.array(cell_histories_['time'])
         start = np.where(time>start_time)[0][0]
         cell_histories_ = {key:valist[start:] for key,valist in cell_histories.iteritems()}
+    for key,value in cell_histories_.iteritems():
+        if isinstance(value,np.ndarray):
+            cell_histories_[key] = value.tolist()
     return cell_histories_
 
 def mean_tension_area_product(history,std=True):

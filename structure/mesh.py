@@ -179,6 +179,9 @@ class Mesh(object):
         meshcopy.centres = copy.copy(meshcopy.centres)
         return meshcopy
     
+    def next_nearest_neighbours(self,i):
+        return np.array(list(set([k for j in self.neighbours[i] for k in self.neighbours[j]])))
+    
     def update(self):
         """recalculate and define mesh attributes"""
         self.N_mesh = len(self.centres)

@@ -124,6 +124,64 @@ def simulation_contact_inhibition_energy_checkpoint_2_stage(tissue,dt,N_steps,st
             yield tissue
         else: yield
 
+def simulation_decoupled_update(tissue,dt,N_steps,stepsize,rand,rates,progress_on=False,return_events=False,eta=ETA,DELTA=None,game=None,game_constants=None,**kwargs):
+    """simulation loop for decoupled update rule"""
+    death_rate = rates[0]
+    step = 0.
+    properties = tissue.properties
+    N= len(tissue)
+    mesh = tissue.mesh
+    while True:
+        event_occurred = False
+        if progress_on: 
+            print_progress(step,N_steps)
+            step += 1
+        mesh.move_all(tissue.dr(dt))
+        if rand.rand() < death_rate*N*dt:
+            event_occured = True
+            if game is None:
+                mother = rand.randint(N)
+            else:
+                fitnesses = recalculate_fitnesses(tissue.mesh.neighbours,properties['type'],DELTA,game,game_constants)
+                mother = np.where(rand.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]   
+            tissue.add_daughter_cells(mother,rand)
+            tissue.remove(mother,True)
+            tissue.remove(rand.randint(N-2),False) #kill random cell
+        tissue.update(dt)
+        if not return_events or event_occurred: 
+            yield tissue
+        else: yield
+
+def simulation_death_birth(tissue,dt,N_steps,stepsize,rand,rates,progress_on=False,return_events=False,eta=ETA,DELTA=None,game=None,game_constants=None,**kwargs):
+    """simulation loop for death-birth update rule"""
+    death_rate = rates[0]
+    step = 0.
+    properties = tissue.properties
+    N= len(tissue)
+    mesh = tissue.mesh
+    while True:
+        event_occurred = False
+        if progress_on: 
+            print_progress(step,N_steps)
+            step += 1
+        mesh.move_all(tissue.dr(dt))
+        if rand.rand() < death_rate*N*dt:
+            event_occured = True
+            dead_cell = rand.randint(N)
+            dead_cell_neighbours = tissue.mesh.neighbours[dead_cell]
+            if game is None:
+                mother = rand.choice(dead_cell_neighbours)
+            else:
+                neighbours_by_cell = [tissue.mesh.neighbours[dcn] for dcn in dead_cell_neighbours]
+                fitnesses = np.array([get_fitness(tissue.properties['type'][cell],tissue.properties['type'][neighbours],DELTA,game,game_constants) for cell,neighbours in zip(dead_cell_neighbours,neighbours_by_cell)])
+                mother = rand.choice(dead_cell_neighbours,p=fitnesses/sum(fitnesses))
+            tissue.add_daughter_cells(mother,rand)
+            tissue.remove((mother,dead_cell),(True,False))
+        tissue.update(dt)
+        if not return_events or event_occurred: 
+            yield tissue
+        else: yield
+
 def check_area_threshold(mesh,threshold_area_fraction):
     return np.where(mesh.areas > threshold_area_fraction*A0)[0]
 

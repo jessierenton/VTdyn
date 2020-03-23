@@ -49,8 +49,7 @@ def run_parallel(paramfile,repeats):
     args = [(i,threshold,death_to_birth_rate_ratio,domain_size_multiplier) 
                         for threshold,death_to_birth_rate_ratio,domain_size_multiplier in parameters
                         for i in range(repeats)]
-    # pool.map(run_single_unpack,args)
-    run_single_unpack(args[0])
+    pool.map(run_single_unpack,args)
 
 paramfile = sys.argv[1]  
 repeats = int(sys.argv[2])  

@@ -39,7 +39,8 @@ def run_single(i,threshold_area_fraction,death_to_birth_rate_ratio,domain_size_m
                 init_time=INIT_TIME,til_fix=False,save_areas=True,
                 return_events=False,save_cell_histories=True,N_limit=MAX_POP_SIZE,
                 domain_size_multiplier=domain_size_multiplier,rates=rates,threshold_area_fraction=threshold_area_fraction)
-    outdir = PARENTDIR+'/db%.1f_a%.2f_$d'%(death_to_birth_rate_ratio,threshold_area_fraction,i)
+    outdir = PARENTDIR+'/db%.1f_a%.2f_%d'%(death_to_birth_rate_ratio,threshold_area_fraction,i)
+    parameters = {'width':10*domain_size_multiplier,'db':death_to_birth_rate_ratio,'alpha':threshold_area_fraction}
     data.save_as_json(history,outdir,['cell_histories'],parameters,index=0)
     
 def run_parallel(paramfile,repeats):
@@ -48,7 +49,8 @@ def run_parallel(paramfile,repeats):
     args = [(i,threshold,death_to_birth_rate_ratio,domain_size_multiplier) 
                         for threshold,death_to_birth_rate_ratio,domain_size_multiplier in parameters
                         for i in range(repeats)]
-    pool.map(run_single_unpack,args) 
+    # pool.map(run_single_unpack,args)
+    run_single_unpack(args[0])
 
 paramfile = sys.argv[1]  
 repeats = int(sys.argv[2])  

@@ -128,6 +128,7 @@ def read_params_from_filename(filename):
 def get_fate_balance_stats_from_CIPfiles(readir,timesteps,startime=None,stoptime=None,background_corrected=True,savename=None):
     filenames = [filename for filename in os.listdir(readir) 
                     if filename[-5:]=='.json']
+    filenames.sort()
     parameters = [read_params_from_filename(filename) for filename in filenames]
     filenames = [readir+filename for filename in filenames]
     df = [{'db':params[0],'alpha':params[1],'run':params[2],'time':time,'mean':mean,'sem':sem,'type':'division'} 
@@ -175,19 +176,12 @@ def plot_fate_balance_df_compare_runs(df=None,filename=None,error=False,fate="de
     
 
 if __name__ == "__main__":    
-    # df,nn_data,parameters = readfromfile("CIP_fate_statistics/db0.1_a0.80_001.json")
-    # # df,nn_data,parameters = readfromfile("fate_test_db_000.json")
-    # neighbours = nn_data["nn"]
-    # startime,stoptime = 0,2000
-    # timesteps = np.arange(0,5*24+12,12)
-    # I_div_cor = net_imbalance(df,neighbours,startime,stoptime,timesteps,'division')
-    # I_death_cor = net_imbalance(df,neighbours,startime,stoptime,timesteps,'death')
-    # I_div_nocor = net_imbalance(df,neighbours,startime,stoptime,timesteps,'division',False)
-    # I_death_nocor = net_imbalance(df,neighbours,startime,stoptime,timesteps,'death',False)
     
     readir = 'CIP_fate_statistics2/'
     # filenames = [DIR+f"fate_test_{runtype}_000.json" for runtype in ("db","dc","cip")]
     timeintervals = 24*np.arange(0.,7.5,0.5)
-    df = get_fate_balance_stats_from_CIPfiles(readir,timeintervals,0,6800,True,'CIP_fate_balance_background_corrected')
-    # plot_fate_balance_df(filename='CIP_fate_balance_background_corrected')
+    df = get_fate_balance_stats_from_CIPfiles(readir,timeintervals,100,6000,True,'CIP_fate_balance_background_corrected_new')
+    # plot_fate_balance_df(filename='CIP_fate_balance_background_corrected2')
     # plot_fate_balance_df_compare_runs(df=None,filename='CIP_fate_balance_background_corrected',error=False,fate="death")
+    
+    

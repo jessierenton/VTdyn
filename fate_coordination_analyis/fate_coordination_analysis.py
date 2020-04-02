@@ -1,11 +1,16 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import seaborn as sns
+try: 
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+    import seaborn as sns
+except ModuleNotFoundError:
+    pass
 import pandas as pd
 import json
 from scipy import stats
 import os
+from functools import partial
+from multiprocessing import Pool,cpu_count
 
 sns.set_style("white")
 PALETTE = sns.color_palette()
@@ -84,7 +89,7 @@ def get_background_imbalance_over_time(df,neighbours,startime,stoptime,timesteps
     t_f_vals = list(df_snapshot.loc[index].time)
     return [[get_background_imbalance(df,neighbours,t_f,t+t_f) for t in timesteps] for i,t_f in zip(index,t_f_vals)]
     
-def get_net_imbalance_individual_contribution(df,neighbours,i,t,background_corrected=True):
+def get_net_imbalance_individual_contribution(df,neighbours,t,background_corrected,i):
     """return contribution from cell i to detrended net imbalance for time interval t"""
     t_f = df.loc[i].time
     nn_data = df.loc[df.cell_ids.isin(neighbours[i]),['time','divided']]
@@ -96,7 +101,8 @@ def get_net_imbalance_individual_contribution(df,neighbours,i,t,background_corre
     return nn_imbalance
 
 def get_net_imbalance_mean_sem(df,neighbours,index,t,background_corrected=True):
-    all_contributions = [get_net_imbalance_individual_contribution(df,neighbours,i,t,background_corrected) for i in index]
+    pool = Pool(cpu_count()-1,maxtasksperchild=1000)
+    all_contributions = pool.map(partial(get_net_imbalance_individual_contribution,df,neighbours,t,background_corrected),index)
     return np.mean(all_contributions),stats.sem(all_contributions)
 
 def fate_is_division(fate):

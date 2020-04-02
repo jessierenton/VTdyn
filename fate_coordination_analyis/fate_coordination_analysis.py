@@ -1,16 +1,14 @@
 import numpy as np
-try: 
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as patches
-    import seaborn as sns
-except ModuleNotFoundError:
-    pass
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import seaborn as sns
 import pandas as pd
 import json
 from scipy import stats
-import os
-from functools import partial
+import os,sys
 from multiprocessing import Pool,cpu_count
+from functools import partial
+from itertools import chain
 
 sns.set_style("white")
 PALETTE = sns.color_palette()
@@ -89,7 +87,7 @@ def get_background_imbalance_over_time(df,neighbours,startime,stoptime,timesteps
     t_f_vals = list(df_snapshot.loc[index].time)
     return [[get_background_imbalance(df,neighbours,t_f,t+t_f) for t in timesteps] for i,t_f in zip(index,t_f_vals)]
     
-def get_net_imbalance_individual_contribution(df,neighbours,t,background_corrected,i):
+def get_net_imbalance_individual_contribution(df,neighbours,i,t,background_corrected=True):
     """return contribution from cell i to detrended net imbalance for time interval t"""
     t_f = df.loc[i].time
     nn_data = df.loc[df.cell_ids.isin(neighbours[i]),['time','divided']]
@@ -101,8 +99,7 @@ def get_net_imbalance_individual_contribution(df,neighbours,t,background_correct
     return nn_imbalance
 
 def get_net_imbalance_mean_sem(df,neighbours,index,t,background_corrected=True):
-    pool = Pool(cpu_count()-1,maxtasksperchild=1000)
-    all_contributions = pool.map(partial(get_net_imbalance_individual_contribution,df,neighbours,t,background_corrected),index)
+    all_contributions = [get_net_imbalance_individual_contribution(df,neighbours,i,t,background_corrected) for i in index]
     return np.mean(all_contributions),stats.sem(all_contributions)
 
 def fate_is_division(fate):
@@ -134,15 +131,31 @@ def read_params_from_filename(filename):
 def get_fate_balance_stats_from_CIPfiles(readir,timesteps,startime=None,stoptime=None,background_corrected=True,savename=None):
     filenames = [filename for filename in os.listdir(readir) 
                     if filename[-5:]=='.json']
-    filenames.sort()
     parameters = [read_params_from_filename(filename) for filename in filenames]
     filenames = [readir+filename for filename in filenames]
-    df = [{'db':params[0],'alpha':params[1],'run':params[2],'time':time,'mean':mean,'sem':sem,'type':'division'} 
+    df = [{'db':params[0],'alpha':params[1],'run':params[2],'time':time,'mean':mean,'sem':sem,'fate':'division'} 
             for filename,params in zip(filenames,parameters) 
                 for time,(mean,sem) in zip(timesteps,get_fate_balance_stats_from_file(filename,'division',timesteps,startime,stoptime,background_corrected))]
-    df += [{'db':params[0],'alpha':params[1],'run':params[2],'time':time,'mean':mean,'sem':sem,'type':'death'} 
+    df += [{'db':params[0],'alpha':params[1],'run':params[2],'time':time,'mean':mean,'sem':sem,'fate':'death'} 
             for filename,params in zip(filenames,parameters) 
                 for time,(mean,sem) in zip(timesteps,get_fate_balance_stats_from_file(filename,'death',timesteps,startime,stoptime,background_corrected))]
+    df = pd.DataFrame(df)
+    if savename is not None:
+        df.to_csv(savename)
+    return df
+    
+def get_fate_balance_stats_from_CIPfiles_parallel(readir,timesteps,startime=None,stoptime=None,background_corrected=True,savename=None):
+    filenames = [filename for filename in os.listdir(readir) 
+                    if filename[-5:]=='.json']
+    parameters = [read_params_from_filename(filename) for filename in filenames]
+    filenames = [readir+filename for filename in filenames]
+    args1 = ((filename,'division',timesteps,startime,stoptime,background_corrected) for filename in filenames)
+    args2 = ((filename,'death',timesteps,startime,stoptime,background_corrected) for filename in filenames)
+    pool = Pool(cpu_count()-1,maxtasksperchild=1000)
+    data = pool.starmap(get_fate_balance_stats_from_file,chain(args1,args2))
+    fates = ['division']*len(filenames)+['death']*len(filenames)
+    df = [{'db':params[0],'alpha':params[1],'run':params[2],'time':time,'mean':mean,'sem':sem,'fate':fate} 
+            for params,timeseries_data,fate in zip(parameters*2,data,fates) for time,(mean,sem) in zip(timesteps,timeseries_data)]
     df = pd.DataFrame(df)
     if savename is not None:
         df.to_csv(savename)
@@ -169,7 +182,7 @@ def plot_fate_balance_df(df=None,filename=None,error=False,run=None):
         x_ci="sd"
     else:
         x_ci=None
-    g = sns.lmplot(x='time',y='mean',row='type',hue='alpha',col='db',data=df,x_estimator=np.mean,fit_reg=False,markers='.',x_ci=x_ci)
+    g = sns.lmplot(x='time',y='mean',row='fate',hue='alpha',col='db',data=df,x_estimator=np.mean,fit_reg=False,markers='.',x_ci=x_ci)
     g.add_legend()   
 
 def plot_fate_balance_df_compare_runs(df=None,filename=None,error=False,fate="death"):
@@ -181,13 +194,10 @@ def plot_fate_balance_df_compare_runs(df=None,filename=None,error=False,fate="de
     g.map(plt.errorbar,'time','mean','sem/2')
     
 
-if __name__ == "__main__":    
-    
+if __name__ == "__main__":        
     readir = 'CIP_fate_statistics2/'
-    # filenames = [DIR+f"fate_test_{runtype}_000.json" for runtype in ("db","dc","cip")]
     timeintervals = 24*np.arange(0.,7.5,0.5)
     df = get_fate_balance_stats_from_CIPfiles(readir,timeintervals,100,6000,True,'CIP_fate_balance_background_corrected_new')
-    # plot_fate_balance_df(filename='CIP_fate_balance_background_corrected2')
+    # plot_fate_balance_df(filename='CIP_fate_balance_background_corrected')
     # plot_fate_balance_df_compare_runs(df=None,filename='CIP_fate_balance_background_corrected',error=False,fate="death")
-    
     

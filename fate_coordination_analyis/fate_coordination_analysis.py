@@ -197,7 +197,7 @@ def plot_fate_balance_df_compare_runs(df=None,filename=None,error=False,fate="de
 if __name__ == "__main__":        
     readir = 'CIP_fate_statistics2/'
     timeintervals = 24*np.arange(0.,7.5,0.5)
-    df = get_fate_balance_stats_from_CIPfiles(readir,timeintervals,100,6000,True,'CIP_fate_balance_background_corrected_new')
+    df = get_fate_balance_stats_from_CIPfiles_parallel(readir,timeintervals,100,6000,True,'CIP_fate_balance_background_corrected_new')
     # plot_fate_balance_df(filename='CIP_fate_balance_background_corrected')
     # plot_fate_balance_df_compare_runs(df=None,filename='CIP_fate_balance_background_corrected',error=False,fate="death")
     

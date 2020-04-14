@@ -19,7 +19,7 @@ INIT_TIME = 96.
 
 S0 = 1.
 
-PARENTDIR = "CIP_fate_statistics"
+PARENTDIR = "CIP_fate_statistics3"
 
 with open(PARENTDIR+'/info',"w") as f:
     f.write('death_rate = %.3f\n'%DEATH_RATE)

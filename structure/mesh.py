@@ -256,6 +256,11 @@ class Mesh(object):
         edge_vector = np.array(vertices_of_i[vertex_id_locations[0][0]])-np.array(vertices_of_i[vertex_id_locations[0][1]])
         return (edge_vector[0]**2+edge_vector[1]**2)**0.5  
 
+    def mean_cell_separation(self):
+        return np.mean([np.mean(distance) for distance in self.distances])
+    
+    def mean_cell_distance(self):
+        return np.mean([np.mean(self.geometry.distance(centre,np.delete(self.centres,i,0))) for i,centre in enumerate(self.centres)])
        
         
 class MeshNoArea(Mesh):

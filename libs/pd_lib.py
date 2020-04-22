@@ -172,14 +172,15 @@ def simulation_no_division(tissue,dt,N_steps,rand):
 #         yield tissue
 
     
-def run_simulation(simulation,N,timestep,timend,rand,DELTA,game,constants,init_time=None,til_fix=True,save_areas=False,tissue=None,mutant_num=1):
+def run_simulation(simulation,N,timestep,timend,rand,DELTA,game,constants,init_time=None,til_fix=True,save_areas=False,
+                    tissue=None,mutant_num=1,save_cell_histories=False):
     """initialise tissue with NxN cells and run given simulation with given game and constants.
             starts with single cooperator
             ends at time=timend OR if til_fix=True when population all cooperators (type=1) or defectors (2)
         returns history: list of tissue objects at time intervals given by timestep
             """
     if tissue is None:
-        tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=save_areas)
+        tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=save_areas,save_cell_histories=save_cell_histories)
     tissue.properties['type'] = np.zeros(N*N,dtype=int)
     tissue.age = np.zeros(N*N,dtype=float)
     if init_time is not None:    

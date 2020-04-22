@@ -9,6 +9,7 @@ from scipy.spatial import Voronoi, Delaunay
 from descartes.patch import PolygonPatch
 import os
 
+A0 = np.sqrt(3)/2
 beige = '#F4EDD6'
 DEFAULT_PALETTE = np.array((beige,'#688A87','#FF70C3'))
 
@@ -30,11 +31,15 @@ def set_heatmap_colours(heat_map,palette=None,return_palette_only=False):
 
 def set_key_palette(key,history=None,tissue=None,palette=None):
     if palette is not None: return palette
-    if history is not None: 
-        key_max = max((max(tissue.properties[key]) for tissue in history))
-    elif tissue is not None:
-        key_max = max(tissue.properties[key])
-    else: raise TypeError('history or tissue argument must be given')
+    try:
+        if history is not None:  
+            key_max = max((max(tissue.properties[key]) for tissue in history))
+        elif tissue is not None:
+            key_max = max(tissue.properties[key])
+        else: 
+            raise TypeError('history or tissue argument must be given')
+    except KeyError:
+        key_max = len(DEFAULT_PALETTE)
     if key_max>len(DEFAULT_PALETTE):
         palette = np.array(sns.color_palette("husl", key_max+1))
         np.random.shuffle(palette)
@@ -124,9 +129,39 @@ def multi_torus_plot(tissue_list,nrows,ncols,param_name=None,param_vals=None,fmt
         if param_name is not None and param_vals is not None:
             ax.set_title(param_name+fmt%param)
     plt.subplots_adjust(left=0.0,right=1.0,bottom=0.0,top=1.0,wspace=0.0,hspace=0.0)
+
+def plot_neighbours_of_most_recent_deaths(tissue,n,ax,palette=None):
+    if tissue.cell_histories != {}:
+        if palette is None:
+            palette = sns.cubehelix_palette(n, start=0.4,dark=0,rot=0,light=0.5,reverse=True)
+        centres=tissue.mesh.centres
+        divided = np.flip(tissue.cell_histories['divided'])
+        times = np.flip(tissue.cell_histories['time'])
+        nn = tissue.cell_histories['nn'][::-1]
+        nn = [neighbours for neighbours,is_divided,time in zip(nn,divided,times) if not is_divided and time < tissue.time][:n]
+        for neighbours,color in zip(nn,palette):
+            neighbour_ids = [np.where(tissue.cell_ids==n)[0][0] for n in neighbours if n in tissue.cell_ids]
+            centres_to_plot = centres[np.array(neighbour_ids)]
+            plt.plot(centres_to_plot[:,0], centres_to_plot[:,1], 'o',color=color)  
+
+def plot_recent_divisions(tissue,n,ax,palette=None):
+    if tissue.cell_histories != {}:
+        if palette is None:
+            palette = sns.cubehelix_palette(n, start=0.4,dark=0,rot=0,light=0.5,reverse=True)
+        centres=np.flip(tissue.mesh.centres,axis=0)
+        ages = np.flip(tissue.age)
+        for color,centre1,centre2,age1,age2 \
+                in zip(palette,centres[::2],np.roll(centres,-1,axis=0)[::2],ages[::2],np.roll(ages,-1)[::2]):
+            if age1!=age2:
+                break
+            else:
+                dx,dy = centre2-centre1
+                ax.arrow(centre1[0],centre1[1],dx,dy,head_width=0.25,head_length=0.2,overhang=0.7,color=color,length_includes_head=True)
+                ax.arrow(centre2[0],centre2[1],-dx,-dy,head_width=0.25,head_length=0.2,overhang=0.7,color=color,length_includes_head=True)
     
 def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None,animate=False,
-                heat_map=None,plot_vals=None,textcolor='black',figsize=None,lw=2.5,edgecolor='k',time=False):
+                heat_map=None,plot_vals=None,textcolor='black',figsize=None,lw=2.5,edgecolor='k',time=False,threshold_area=None,
+                neighbours_of_recent_deaths=None,recent_divisions=None):
     """plot tissue object with torus geometry
     args
     ---------------
@@ -135,7 +170,7 @@ def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show
     key: (str) color code cells by key. must match a tissue.properties key, e.g. type, ancestors
     key_label: (bool) plot key vals if True
     ax: matplotlib axes
-    show_centres: (bool) plot cell centres if True
+    show_centres: (bool) plot cell centres if True, or specific ids if list
     cell_ids/mesh_ids: (bool) label with cell/mesh ids if True
     areas: (bool) label with cell areas if True
     boundary: (bool) if True plot square boundary over which tissue is periodic
@@ -167,6 +202,8 @@ def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show
         ax.add_collection(PatchCollection([PolygonPatch(p,linewidth=lw,edgecolor=edgecolor,facecolor=c) for p in mp],match_original=True))
     else:
         if key is not None:
+            if key == 'CIP':
+                tissue.properties['CIP'] = (tissue.mesh.areas>threshold_area)*1
             if palette is None: palette = set_key_palette(key,tissue=tissue)
             colours = palette[tissue.properties[key]]         
         elif heat_map is not None:
@@ -177,7 +214,11 @@ def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show
         coll = PatchCollection([PolygonPatch(p,facecolor = c,linewidth=lw,edgecolor=edgecolor) for p,c in zip(mp,colours)],match_original=True)
         ax.add_collection(coll) 
     if show_centres: 
-        plt.plot(centres[:,0], centres[:,1], 'o',color='black')
+        if show_centres is True:
+            plt.plot(centres[:,0], centres[:,1], 'o',color='black')
+        else:
+            centres_to_plot = centres[np.array(show_centres)]
+            plt.plot(centres_to_plot[:,0], centres_to_plot[:,1], 'o',color='black')
     if cell_ids:
         ids = tissue.cell_ids
         for i, coords in enumerate(tissue.mesh.centres):
@@ -199,9 +240,13 @@ def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show
         ax.add_patch(patches.Rectangle((-width/2,-height/2),width,height,fill=False,linewidth=1.5))
     if time:
         ax.text(0.5,0.,r'$t=%5.1f$ hours'%(tissue.time),transform=ax.transAxes,ha="center")
+    if neighbours_of_recent_deaths is not None:
+        plot_neighbours_of_most_recent_deaths(tissue,neighbours_of_recent_deaths,ax)
+    if recent_divisions is not None:
+        plot_recent_divisions(tissue,recent_divisions,ax)
     if not animate: return ax
 
-def animate_torus(history, key = None, heat_map=None, savefile=None, index=None, delete_images=True,imagedir='images',pause=0.001,palette=None,time=False):
+def animate_torus(history, key = None, heat_map=None, savefile=None, index=None, delete_images=True,imagedir='images',pause=0.001,palette=None,time=False,**kwargs):
     """view animation of tissue history with torus geometry
     args: 
     --------------- 
@@ -235,7 +280,7 @@ def animate_torus(history, key = None, heat_map=None, savefile=None, index=None,
             for t in ax.texts:
                 t.remove()
         except TypeError: pass
-        torus_plot(tissue,palette,key=key,heat_map=heat_map,ax=ax,fig=fig,animate=True,time=time)
+        torus_plot(tissue,palette,key=key,heat_map=heat_map,ax=ax,fig=fig,animate=True,time=time,**kwargs)
         if savefile is not None:
             frame="%s/image%05i.png" % (imagedir,i)
             fig.savefig(frame,dpi=500)

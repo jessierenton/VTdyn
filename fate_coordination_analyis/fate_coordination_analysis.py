@@ -10,19 +10,23 @@ from multiprocessing import Pool,cpu_count
 from functools import partial
 from itertools import chain
 
-sns.set_style("white")
-PALETTE = sns.color_palette()
-t_TOL = 1e-4
+PALETTE = sns.color_palette('colorblind')
+T_TOL = 1e-4
+TEXTWIDTH = 5.
 
 def readfromfile(filename):
     with open(filename) as jsonfile:
         data = json.load(jsonfile)
     nn_data_keys = ["nn","nextnn"]
+    exclude = nn_data_keys +['mean_separation','mean_distance']
     df_fates = get_fates_dataframe({key:value for key,value in data["cell_histories"].items() 
-                                if key not in nn_data_keys})
+                                if key not in exclude})
     nn_data = {key:value for key,value in data["cell_histories"].items() 
                     if key in nn_data_keys}
-    return df_fates,nn_data,data["parameters"]
+    try:
+        return df_fates,nn_data,data["parameters"]
+    except KeyError:
+        return df_fates,nn_data,None
                
     
 def get_fates_dataframe(fates_data):
@@ -71,8 +75,8 @@ def background_imbalance(t1,t2,t_f_list,divided_list):
                     for t_f,divided in zip(t_f_list,divided_list))
 
 def cells_in_tissue(df,t):
-    #add t_TOL to exclude new divided cells
-    return df[(((df.time-df.age+t_TOL)<t)&(t<=df.time))]
+    #add T_TOL to exclude new divided cells
+    return df[(((df.time-df.age+T_TOL)<t)&(t<=df.time))]
 
 def get_background_imbalance(df,neighbours,t1,t2):
     """find background imbalance from dataframe"""
@@ -120,8 +124,8 @@ def get_fate_balance_stats_from_file(filename,fate,timesteps,startime=None,stopt
     print(f"complete {filename} {fate}")
     return data
     
-def get_fate_balance_stats_from_files(filename,fate,timesteps,startime=None,stoptime=None,background_corrected=True):
-    fate_balance_stats = [get_fate_balance_stats_from_file(f,divided,timesteps,startime) for f in filenames]
+def get_fate_balance_stats_from_files(filenames,fate,timesteps,startime=None,stoptime=None,background_corrected=True):
+    fate_balance_stats = [get_fate_balance_stats_from_file(f,fate,timesteps,startime,stoptime,background_corrected) for f in filenames]
     return fate_balance_stats
     
 def read_params_from_filename(filename):
@@ -173,31 +177,55 @@ def plot_multi_fate_balance_stats(fate_balance_stats_div,fate_balance_stats_dead
             color=color,marker='d',ls='')
         plt.legend()
 
-def plot_fate_balance_df(df=None,filename=None,error=False,run=None):
+def set_time_units(df,time_units):
+    if time_units == 'hours':
+        return df
+    if time_units == "days":
+        df['time'] = df['time']/24 
+        return df
+
+def plot_fate_balance_df(df=None,filename=None,error=False,run=None,time_units='days',savename=None,palette=PALETTE):
+    sns.set_style("white")
+    sns.set_palette(palette)
     if filename is not None:
-        df = pd.read_csv(filename)
+        df = pd.read_csv(filename,index_col=0)
+    df = set_time_units(df,time_units)
     if run is not None:
         df = df[df.run==run]
     if error:
         x_ci="sd"
     else:
         x_ci=None
-    g = sns.lmplot(x='time',y='mean',row='fate',hue='alpha',col='db',data=df,x_estimator=np.mean,fit_reg=False,markers='.',x_ci=x_ci)
-    g.add_legend()   
+    g = sns.FacetGrid(df,row='fate',col='alpha',hue='db',row_order=['death','division'],height=TEXTWIDTH/3,aspect=1,hue_kws={'marker':['d','v','o','^','P','s']}) 
+    g.map(sns.regplot,'time','mean',x_estimator=np.mean,x_ci=x_ci,fit_reg=False,scatter_kws={'s':6})
+    g.set_xlabels('Days from event')
+    g.axes[0][0].set_ylabel('Net imbalance of\n nearest neighbours\n around dead cell',labelpad=6.0)
+    g.axes[1][0].set_ylabel('Net imbalance of\n nearest neighbours\n around divided cell',labelpad=6.0)
+    g.add_legend(title=r'$\lambda /\gamma$')
+    g.set_titles(template=r'$\alpha = {col_name}$')
+    g.set(xticks=[0,2,4,6])
+    plt.subplots_adjust(left=0.17,bottom=0.16,right=0.87,top=0.90,wspace=0.17,hspace=0.31)
+    if savename is not None:
+        g.savefig(savename,dpi=450)
+    return g   
 
 def plot_fate_balance_df_compare_runs(df=None,filename=None,error=False,fate="death"):
     if filename is not None:
-        df = pd.read_csv(filename)
-    df = df[df.type==fate]
+        df = pd.read_csv(filename,index_col=0)
+    df = df[df.fate==fate]
     df['sem/2']=df['sem']/2
     g=sns.FacetGrid(df,row='alpha',hue='run',col='db')
     g.map(plt.errorbar,'time','mean','sem/2')
-    
 
 if __name__ == "__main__":        
-    readir = 'CIP_fate_statistics2/'
+    readir = 'CIP_fate_statistics3/'
     timeintervals = 24*np.arange(0.,7.5,0.5)
-    df = get_fate_balance_stats_from_CIPfiles_parallel(readir,timeintervals,100,6000,True,'CIP_fate_balance_background_corrected_new')
-    # plot_fate_balance_df(filename='CIP_fate_balance_background_corrected')
-    # plot_fate_balance_df_compare_runs(df=None,filename='CIP_fate_balance_background_corrected',error=False,fate="death")
-    
+    # df = get_fate_balance_stats_from_CIPfiles_parallel(readir,timeintervals,100,6000,True,'CIP_fate_balance_background_corrected3')
+    # g = plot_fate_balance_df(filename='fate_balance_data/CIP_fate_balance_not_background_corrected3',savename='CIP_imbalance_nbc.pdf')
+    # plot_fate_balance_df_compare_runs(df=None,filename='CIP_fate_balance_background_corrected_new',error=False,fate="death")
+    readir = 'dcdb_fate_statistics/'
+    filenames = [readir+f for f in os.listdir(readir) if f[-4:]=='json']
+    dfs_bc = get_fate_balance_stats_from_files(filenames,'death',timeintervals,startime=100,stoptime=6000,background_corrected=True)
+    dfs_bc = get_fate_balance_stats_from_files(filenames,'division',timeintervals,startime=100,stoptime=6000,background_corrected=True)
+    dfs_nbc = get_fate_balance_stats_from_files(filenames,'death',timeintervals,startime=100,stoptime=6000,background_corrected=False)
+    dfs_nbc = get_fate_balance_stats_from_files(filenames,'division',timeintervals,startime=100,stoptime=6000,background_corrected=False)

@@ -22,13 +22,17 @@ INIT_TIME = None
 
 # DATA_SAVE_FIELDS = ["pop_size","cell_histories","cycle_phases","density",
 #                     "cell_seperation"]
-DATA_SAVE_FIELDS = ["density","cell_histories","areas","pop_size"]
+# DATA_SAVE_FIELDS = ["density","cell_histories","areas","pop_size"]
+DATA_SAVE_FIELDS = []
 
 for d in DATA_SAVE_FIELDS:
     if d not in data.FIELDS_DICT:
         raise ValueError("not all data types are correct")
 
-PARENTDIR = "CIP_data_area_threshold/sweep_fixed_N100_db0.4_for_figs"
+PARENTDIR = "CIP_data_area_threshold/sweep_fixed_N100_db0.5_for_figs"
+if not os.path.exists(PARENTDIR): # if the outdir doesn't exist create it
+     os.makedirs(PARENTDIR)
+
 
 with open(PARENTDIR+'/info',"w") as f:
     f.write('death_rate = %.3f\n'%DEATH_RATE)
@@ -43,7 +47,7 @@ def run_single(i,threshold_area_fraction,death_to_birth_rate_ratio,domain_size_m
     """run a single voronoi tessellation model simulation"""
     rates = (DEATH_RATE,DEATH_RATE/death_to_birth_rate_ratio)
     rand = np.random.RandomState()
-    history = lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,progress_on=False,
+    history = lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,progress_on=True,
                 init_time=INIT_TIME,til_fix=False,save_areas=True,
                 return_events=False,save_cell_histories=True,N_limit=MAX_POP_SIZE,
                 domain_size_multiplier=domain_size_multiplier,rates=rates,threshold_area_fraction=threshold_area_fraction)
@@ -61,9 +65,9 @@ def run_multi(paramfile,repeats):
                         for i in range(repeats)]
     return map(run_single_unpack,args),parameters.T[0]
 
-paramfile = "params0.txt"
+paramfile = "params_for_figs1.txt"
 repeats = 1 
 histories,threshold_vals = run_multi(paramfile,repeats)
 tissue_list = [history[-1] for history in histories]          
-vplt.multi_torus_plot(tissue_list,2,3,r'$\alpha = $',threshold_vals,figsize=(8,5))
-plt.savefig('tissues_varying_area_threshold',bbox_inches="tight")
+vplt.multi_torus_plot(tissue_list,2,4,r'$\alpha = $',threshold_vals,figsize=(10,5))
+plt.savefig(PARENTDIR+'/tissues_varying_area_threshold.pdf',bbox_inches="tight")

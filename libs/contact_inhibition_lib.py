@@ -35,7 +35,11 @@ def run_til_fix(simulation,N_step,skip):
     return [tissue.copy() for tissue in generate_til_fix(simulation,N_step,skip)]
         
 def fixed(tissue):
-    return (1 not in tissue.properties['type'] or 0 not in tissue.properties['type'])
+    try:
+        return (1 not in tissue.properties['type'] or 0 not in tissue.properties['type'])
+    except KeyError:
+        return np.all(tissue.properties['ancestor']==tissue.properties['ancestor'][0])
+    
 
 def generate_til_fix(simulation,N_step,skip):
     for tissue in itertools.islice(simulation,0,N_step,skip):
@@ -227,7 +231,7 @@ def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand
         else: yield
 
 def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False,progress_on=False,mutant_num=1,ancestors=True,mu=MU,T_m=T_M,eta=ETA,dt=dt,DELTA=None,game=None,game_constants=None,
-        cycle_phase=None,save_areas=False,save_cell_histories=False,tissue=None,force=None,return_events=False,N_limit=np.inf,domain_size_multiplier=1.,**kwargs):
+        cycle_phase=None,save_areas=False,save_cell_histories=False,tissue=None,force=None,return_events=False,N_limit=np.inf,domain_size_multiplier=1.,generator=False,**kwargs):
     if tissue is None:
         if force is None: force = BasicSpringForceNoGrowth(mu,T_m)
         tissue = init.init_tissue_torus_with_multiplier(N,N,0.01,force,rand,domain_size_multiplier,save_areas=save_areas,save_cell_histories=save_cell_histories)
@@ -242,6 +246,10 @@ def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False
             tissue.properties['type'][rand.choice(len(tissue),size=mutant_num,replace=False)]=1
         if ancestors: tissue.properties['ancestor'] = np.arange(len(tissue),dtype=int)
     if return_events: history = run_return_events(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt)
-    elif til_fix: history = run_til_fix(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt,timestep/dt)
+    elif til_fix: 
+        if generator:
+            history = generate_til_fix(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt,timestep/dt)
+        else:
+            history = run_til_fix(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt,timestep/dt)
     else: history = run(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,eta=ETA,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt,timestep/dt)
     return history

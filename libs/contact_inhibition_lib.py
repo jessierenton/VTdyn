@@ -226,7 +226,7 @@ def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand
             yield tissue
         else: yield
 
-def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False,progress_on=False,mutant_num=1,ancestors=None,mu=MU,T_m=T_M,eta=ETA,dt=dt,DELTA=None,game=None,game_constants=None,
+def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False,progress_on=False,mutant_num=1,ancestors=True,mu=MU,T_m=T_M,eta=ETA,dt=dt,DELTA=None,game=None,game_constants=None,
         cycle_phase=None,save_areas=False,save_cell_histories=False,tissue=None,force=None,return_events=False,N_limit=np.inf,domain_size_multiplier=1.,**kwargs):
     if tissue is None:
         if force is None: force = BasicSpringForceNoGrowth(mu,T_m)
@@ -240,7 +240,7 @@ def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False
         if mutant_num is not None:
             tissue.properties['type'] = np.zeros(len(tissue),dtype=int)
             tissue.properties['type'][rand.choice(len(tissue),size=mutant_num,replace=False)]=1
-        if ancestors is not None: tissue.properties['ancestor'] = np.arange(len(tissue),dtype=int)
+        if ancestors: tissue.properties['ancestor'] = np.arange(len(tissue),dtype=int)
     if return_events: history = run_return_events(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt)
     elif til_fix: history = run_til_fix(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt,timestep/dt)
     else: history = run(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,eta=ETA,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt,timestep/dt)

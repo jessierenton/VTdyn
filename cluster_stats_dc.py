@@ -38,7 +38,7 @@ def run_sim(m,i):
     data = [calc_interactions(tissue,mutant_index,n)
                 for tissue in lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,progress_on=False,
                                     init_time=INIT_TIME,til_fix=True,save_areas=False,return_events=False,save_cell_histories=False,
-                                    N_limit=MAX_POP_SIZE,game=None,mutant_num=None,domain_size_multiplier=m,generator=True)
+                                    N_limit=MAX_POP_SIZE,game=None,mutant_num=None,domain_size_multiplier=m,rates=rates,generator=True)
                 for mutant_index,n in enumerate(np.bincount(tissue.properties['ancestor'])) if n>=n_min]                
     outdir1 = outdir + 'm%.3f/'%m
     if not os.path.exists(outdir1): # if the outdir doesn't exist create it
@@ -66,7 +66,7 @@ domain_size_multipliers = [0.85,0.9,0.95,1.0,1.05,1.1,1.15]
 # run simulations in parallel 
 cpunum=mp.cpu_count()
 pool = Pool(processes=cpunum-1,maxtasksperchild=1000)
-for m in domain_size_multipiers:
-    pool.map(partial(run_sim,m),range(SIM_RUNS))
+for m in domain_size_multipliers:
+    map(partial(run_sim,m),range(SIM_RUNS))
 pool.close()
 pool.join()

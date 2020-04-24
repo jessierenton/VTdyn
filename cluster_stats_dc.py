@@ -67,6 +67,6 @@ domain_size_multipliers = [0.85,0.9,0.95,1.0,1.05,1.1,1.15]
 cpunum=mp.cpu_count()
 pool = Pool(processes=cpunum-1,maxtasksperchild=1000)
 for m in domain_size_multipliers:
-    map(partial(run_sim,m),range(SIM_RUNS))
+    pool.map(partial(run_sim,m),range(SIM_RUNS))
 pool.close()
 pool.join()

@@ -31,8 +31,8 @@ def run_return_events(simulation,N_step):
 def run_return_final_tissue(simulation,N_step):
     return next(itertools.islice(simulation,N_step,None))
 
-def run_til_fix(simulation,N_step,skip):
-    return [tissue.copy() for tissue in generate_til_fix(simulation,N_step,skip)]
+def run_til_fix(simulation,N_step,skip,include_fixed=True):
+    return [tissue.copy() for tissue in generate_til_fix(simulation,N_step,skip,include_fixed=include_fixed)]
         
 def fixed(tissue):
     try:
@@ -41,12 +41,13 @@ def fixed(tissue):
         return np.all(tissue.properties['ancestor']==tissue.properties['ancestor'][0])
     
 
-def generate_til_fix(simulation,N_step,skip):
+def generate_til_fix(simulation,N_step,skip,include_fixed=True):
     for tissue in itertools.islice(simulation,0,N_step,skip):
         if not fixed(tissue):
             yield tissue
         else:
-            yield tissue
+            if include_fixed:
+                yield tissue
             break
 
 
@@ -230,6 +231,48 @@ def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand
             yield tissue
         else: yield
 
+def simulation_contact_inhibition_area_dependent_absolute_fitness(tissue,dt,N_steps,stepsize,rand,rates,threshold_area_fraction=0.,progress_on=False,return_events=False,N_limit=np.inf,eta=ETA,DELTA=None,game=None,game_constants=None,**kwargs):
+    yield tissue # start with initial tissue 
+    step = 0.
+    properties = tissue.properties
+    mesh = tissue.mesh
+    death_rate,division_rate = rates
+    while True:
+        event_occurred = False
+        if progress_on: 
+            print_progress(step,N_steps)
+            step += 1
+        N=len(tissue)
+        if N <=16 or N>=N_limit: 
+            break
+        mesh.move_all(tissue.dr(dt,eta))
+        #cell division     
+        division_ready = check_area_threshold(mesh,threshold_area_fraction)
+        if game is None:
+            if rand.rand() < len(division_ready)*division_rate*dt:
+                mother = rand.choice(division_ready)
+                tissue.add_daughter_cells(mother,rand)
+                tissue.remove(mother,True)
+                event_occurred = True
+        else:
+            division_ready_fitnesses = np.array([get_fitness(properties['type'][cell],properties['type'][mesh.neighbours[cell]],DELTA,game,game_constants) 
+                                                for cell in division_ready])
+            if rand.rand() < sum(division_ready_fitnesses)*division_rate*dt:
+                mother = rand.choice(division_ready,p=fitnesses/sum(fitnesses))
+            tissue.add_daughter_cells(mother,rand)
+            tissue.remove(mother,True)
+            event_occurred = True  
+        #cell_death
+        N = len(tissue)
+        if death_rate is not None:  
+            if rand.rand() < N*death_rate*dt:
+                tissue.remove(rand.randint(N),False)   
+                event_occurred = True   	
+        tissue.update(dt)
+        if not return_events or event_occurred: 
+            yield tissue
+        else: yield
+
 def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False,progress_on=False,mutant_num=1,ancestors=True,mu=MU,T_m=T_M,eta=ETA,dt=dt,DELTA=None,game=None,game_constants=None,
         cycle_phase=None,save_areas=False,save_cell_histories=False,tissue=None,force=None,return_events=False,N_limit=np.inf,domain_size_multiplier=1.,generator=False,**kwargs):
     if tissue is None:
@@ -247,8 +290,12 @@ def run_simulation(simulation,N,timestep,timend,rand,init_time=10.,til_fix=False
         if ancestors: tissue.properties['ancestor'] = np.arange(len(tissue),dtype=int)
     if return_events: history = run_return_events(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt)
     elif til_fix: 
+        if til_fix == 'exclude_final':
+            include_fix = False
+        else:
+            include_fix = True
         if generator:
-            history = generate_til_fix(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt,timestep/dt)
+            history = generate_til_fix(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt,timestep/dt,include_fix)
         else:
             history = run_til_fix(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt,timestep/dt)
     else: history = run(simulation(tissue,dt,timend/dt,timestep/dt,rand,til_fix=til_fix,progress_on=progress_on,return_events=return_events,N_limit=N_limit,eta=ETA,DELTA=DELTA,game=game,game_constants=game_constants,**kwargs),timend/dt,timestep/dt)

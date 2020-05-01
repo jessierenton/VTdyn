@@ -25,7 +25,7 @@ def run_sim(alpha,db,m,DELTA,game,game_constants,i):
                                     init_time=INIT_TIME,til_fix='exclude_final',save_areas=True,return_events=False,save_cell_histories=False,
                                     N_limit=MAX_POP_SIZE,DELTA=DELTA,game=game,game_constants=game_constants,
                                     mutant_num=1,domain_size_multiplier=m,rates=rates,threshold_area_fraction=alpha,generator=True)]                
-    if i%100 = 0:
+    if i%100 == 0:
         print('%d complete'%i)
     return data
 

@@ -39,7 +39,7 @@ def sort_data(data):
 L = 10 # population size N = l*l
 INIT_TIME = 96. # initial simulation time to equilibrate 
 TIMEND = 80000. # length of simulation (hours)
-TIMESTEP = 96. # time intervals to save simulation history
+TIMESTEP = 12. # time intervals to save simulation history
 MAX_POP_SIZE = 1000
 DEATH_RATE = 0.25/24.
 SIM_RUNS = int(sys.argv[1]) # number of sims to run
@@ -66,7 +66,7 @@ if not os.path.exists(outdir): # if the outdir doesn't exist create it
 # run simulations in parallel 
 cpunum=mp.cpu_count()
 pool = Pool(processes=cpunum-1,maxtasksperchild=1000)
-df = sort_data(map(partial(run_sim,alpha,db,m,DELTA,game,game_constants),range(SIM_RUNS)))
+df = sort_data(pool.map(partial(run_sim,alpha,db,m,DELTA,game,game_constants),range(SIM_RUNS)))
 pool.close()
 pool.join()
 if b is None:

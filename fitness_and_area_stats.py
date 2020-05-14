@@ -61,7 +61,7 @@ DEATH_RATE = 0.25/24.
 SIM_RUNS = int(sys.argv[1]) # number of sims to run
 n_min = 1 
 simulation = lib.simulation_contact_inhibition_area_dependent     
-DELTA,game,game_constants = 0.025,lib.prisoners_dilemma_averaged,(4,1)
+DELTA,game,game_constants = 0.025,lib.prisoners_dilemma_averaged,(4.,1.)
 
 params = [[0.800000, 0.100000, 0.859628],[1.000000, 0.100000, 0.948836],[1.200000, 0.100000, 1.030535]]
 alpha,db,m = params[int(sys.argv[2])]

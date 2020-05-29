@@ -18,11 +18,11 @@ def mean_proportion_coop_neighbours(idxlist,all_neighbours,cooperators):
 def number_proliferating_cells(tissue,alpha):
     cooperators = np.array(tissue.properties['type'],dtype=bool)
     proliferating = tissue.mesh.areas > alpha*A0
-    proliferating_cooperators = np.where(proliferating[cooperators])[0]
-    proliferating_defectors = np.where(proliferating[~cooperators])[0]
+    proliferating_cooperators = np.where(proliferating&cooperators)[0]
+    proliferating_defectors = np.where(proliferating&(~cooperators))[0]
     propccready = mean_proportion_coop_neighbours(proliferating_cooperators,tissue.mesh.neighbours,cooperators)
     propcdready = mean_proportion_coop_neighbours(proliferating_defectors,tissue.mesh.neighbours,cooperators)
-    return sum(cooperators),len(tissue),sum(proliferating[cooperators]),sum(proliferating),propccready,propcdready
+    return sum(cooperators),len(tissue),len(proliferating_cooperators),sum(proliferating),propccready,propcdready
 
 def run_sim(alpha,db,m,DELTA,game,game_constants,i):
     """run a single simulation and save interaction data for each clone"""

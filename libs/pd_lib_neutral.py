@@ -83,20 +83,21 @@ def simulation(tissue,dt,N_steps,stepsize,rand,eta=ETA,progress_on=False):
 def simulation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,eta=ETA,progress_on=False):
     """simulation loop for neutral process tracking ancestor ids"""
     tissue.properties['ancestor']=np.arange(len(tissue))
-    return simulation(tissue,dt,N_steps,stepsize,rand,eta=ETA,progress_on=False)
+    return simulation(tissue,dt,N_steps,stepsize,rand,eta=eta,progress_on=progress_on)
     
 
 def simulation_mutant_tracking(tissue,dt,N_steps,stepsize,rand,eta=ETA,progress_on=False,mutant_number=1,mutant_type=1):
     """simulation loop for neutral process tracking mutant ids"""
     tissue.properties['type'] = np.full(len(tissue),1-mutant_type,dtype=int)
     tissue.properties['type'][rand.choice(len(tissue),size=mutant_number,replace=False)]=mutant_type
-    return simulation(tissue,dt,N_steps,stepsize,rand,eta=ETA,progress_on=False)
+    return simulation(tissue,dt,N_steps,stepsize,rand,eta=eta,progress_on=progress_on)
 
 def initialise_tissue(N,dt,timend,timestep,rand,mu=MU,save_areas=False,save_cell_histories=False):  
     """initialise tissue and run simulation until timend returning final state"""              
     tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(mu),rand,save_areas=save_areas,save_cell_histories=save_cell_histories)
     tissue.age = np.zeros(N*N,dtype=float)
     if timend !=0: tissue = run_return_final_tissue(simulation(tissue,dt,timend/dt,timestep/dt,rand),timend/dt)
+    tissue.time=0.
     return tissue
 
 def run_simulation(simulation,N,timestep,timend,rand,init_time=None,mu=MU,eta=ETA,dt=dt,til_fix=True,generator=False,save_areas=False,

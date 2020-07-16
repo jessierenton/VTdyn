@@ -27,7 +27,7 @@ def run_sim(i):
     return distribution_data(history,coop_id,i)
 
 L = 10 # population size N = l*l
-INIT_TIME = 24. # initial simulation time to equilibrate 
+INIT_TIME = 96. # initial simulation time to equilibrate 
 TIMEND = 80000. # length of simulation (hours)
 TIMESTEP = 24. # time intervals to save simulation history
 MAX_POP_SIZE = 1000

@@ -29,7 +29,7 @@ def run_sim(i):
 L = 10 # population size N = l*l
 INIT_TIME = 96. # initial simulation time to equilibrate 
 TIMEND = 80000. # length of simulation (hours)
-TIMESTEP = 24. # time intervals to save simulation history
+TIMESTEP = 12. # time intervals to save simulation history
 MAX_POP_SIZE = 1000
 DEATH_RATE = 0.25/24.
 SIM_RUNS = int(sys.argv[1]) # number of sims to run taken as command line arg

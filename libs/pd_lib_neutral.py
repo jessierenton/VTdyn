@@ -110,10 +110,7 @@ def run_simulation(simulation,N,timestep,timend,rand,init_time=None,mu=MU,eta=ET
     if tissue is None:
         tissue = initialise_tissue(N,dt,init_time,timestep,rand,mu=mu,save_areas=save_areas,save_cell_histories=save_cell_histories)
     if til_fix:
-        if til_fix == 'exclude_final':
-            include_fix = False
-        else:
-            include_fix = True
+        include_fix = not (til_fix=='exclude_final')
         if generator:
             history = generate_til_fix(simulation(tissue,dt,timend/dt,timestep/dt,rand,eta=eta,progress_on=progress_on,**kwargs),timend/dt,timestep/dt,include_fix)
         else:

@@ -15,14 +15,14 @@ import pandas as pd
 def distribution_data(history,coop_id,i):
     return [{'tissueid':i,'time':int(tissue.time),'n':sum(tissue.properties['ancestor']==coop_id),'k':len(cell_neighbours),
                 'j':sum((tissue.properties['ancestor']==coop_id)[cell_neighbours])} 
-                for tissue in history
+                for tissue in history if sum(tissue.properties['ancestor']==coop_id)>1
                     for cell_neighbours in tissue.mesh.neighbours]     
 
 def run_sim(i):
     """run a single simulation and save interaction data for each clone"""
     rand = np.random.RandomState()
     history = lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,progress_on=False,
-                                    init_time=INIT_TIME,til_fix=True,save_areas=False)  
+                                    init_time=INIT_TIME,til_fix='exclude_final',save_areas=False)  
     coop_id = np.argmax(np.bincount(history[-1].properties['ancestor']))
     return distribution_data(history,coop_id,i)
 
@@ -46,4 +46,4 @@ pool = Pool(processes=cpunum-1,maxtasksperchild=1000)
 df = pd.DataFrame(sum(pool.map(partial(run_sim),range(SIM_RUNS)),[]))
 pool.close()
 pool.join()
-df.to_csv(outdir+'batch1')
+df.to_csv(outdir+'batch1',index=False)

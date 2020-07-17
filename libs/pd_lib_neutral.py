@@ -95,9 +95,9 @@ def simulation_mutant_tracking(tissue,dt,N_steps,stepsize,rand,eta=ETA,progress_
 def initialise_tissue(N,dt,timend,timestep,rand,mu=MU,save_areas=False,save_cell_histories=False):  
     """initialise tissue and run simulation until timend returning final state"""              
     tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(mu),rand,save_areas=save_areas,save_cell_histories=save_cell_histories)
-    tissue.age = np.zeros(N*N,dtype=float)
-    if timend !=0: tissue = run_return_final_tissue(simulation(tissue,dt,timend/dt,timestep/dt,rand),timend/dt)
-    tissue.time=0.
+    if timend !=0: 
+        tissue = run_return_final_tissue(simulation(tissue,dt,timend/dt,timestep/dt,rand),timend/dt)
+        tissue.reset(reset_age=True)
     return tissue
 
 def run_simulation(simulation,N,timestep,timend,rand,init_time=None,mu=MU,eta=ETA,dt=dt,til_fix=True,generator=False,save_areas=False,

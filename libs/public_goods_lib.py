@@ -109,7 +109,7 @@ def _simulation(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,update
     step = 0.
     yield tissue
     while True:
-        print_progress(step,N_steps)
+        if progress_on: print_progress(step,N_steps)
         N= len(tissue)
         mesh = tissue.mesh
         step += 1

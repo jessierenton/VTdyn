@@ -18,8 +18,9 @@ rand = np.random.RandomState()
 simulation = lib.simulation_decoupled_update  #simulation routine imported from lib
 DELTA = 0.025
 b,c = 5.,1.
-game = lib.N_person_prisoners_dilemma
-game_constants = (b,c)
+threshold = 2
+game = lib.volunteers_dilemma
+game_constants = (b,c,threshold)
 
 
 history = lib.run_simulation(simulation,l,timestep,timend,rand,DELTA,game,game_constants,mutant_num=5,

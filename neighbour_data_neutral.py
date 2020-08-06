@@ -15,7 +15,7 @@ import pandas as pd
 def distribution_data(history,coop_id,i):
     return [{'tissueid':i,'time':int(tissue.time),'n':sum(tissue.properties['ancestor']==coop_id),'k':len(cell_neighbours),
                 'j':sum((tissue.properties['ancestor']==coop_id)[cell_neighbours])} 
-                for tissue in history if 1<sum(tissue.properties['ancestor']==coop_id)<100
+                for tissue in history if 1<=sum(tissue.properties['ancestor']==coop_id)<100
                     for idx,cell_neighbours in enumerate(tissue.mesh.neighbours) if tissue.properties['ancestor']==coop_id]     
 
 def run_sim(i):

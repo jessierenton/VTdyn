@@ -64,19 +64,18 @@ def get_probs(distribution,n=None,k=None,j=None,k_min=3,n_min=1):
 def distribution_df(history,coop_id):
     data = [{'time':int(tissue.time),'n':sum(tissue.properties['ancestor']==coop_id),'k':len(cell_neighbours),
                 'j':sum((tissue.properties['ancestor']==coop_id)[cell_neighbours])} 
-                for tissue in history
-                    for cell_neighbours in tissue.mesh.neighbours]
+                for tissue in history if 1<sum(tissue.properties['ancestor']==coop_id)<100
+                    for idx,cell_neighbours in enumerate(tissue.mesh.neighbours) if tissue.properties['ancestor'][idx]==coop_id]
     return pd.DataFrame(data)
 
 l = 10 # population size N=l*l
-timend = 3000 # simulation time (hours)
+timend = 30 # simulation time (hours)
 timestep = 1.0 # time intervals to save simulation history
-init_time = 96
+init_time = 20
 rand = np.random.RandomState()
 
 simulation = lib.simulation_ancestor_tracking  #simulation routine imported from lib
 
 history = lib.run_simulation(simulation,l,timestep,timend,rand,init_time,til_fix=True,save_areas=False,progress_on=True)
 coop_id = np.argmax(np.bincount(history[-1].properties['ancestor']))
-# coop_coop_dist = get_coop_neighbour_distribution(history,coop_id)
 df = distribution_df(history,coop_id)

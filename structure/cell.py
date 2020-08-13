@@ -90,7 +90,7 @@ class Tissue(object):
             except TypeError:
                 return [self.cell_ids[self.mesh.next_nearest_neighbours(i)] for i in idx_list]
     
-    def update_cell_histories(self,idx_list,divided,position=True,neighbour_data=True):
+    def update_cell_histories(self,idx_list,divided,position=True,neighbour_data=True,distance_data=True):
         if self.cell_histories == {}:
             self.cell_histories.update({'time':[],'cell_ids':[],'age':[],'divided':[]})
             try: self.cell_histories.update({'area':[]}) 
@@ -101,6 +101,9 @@ class Tissue(object):
                 self.cell_histories.update({'nn':[]})
                 self.cell_histories.update({'nextnn':[]})
                 self.cell_histories.update({'mother':[]})
+            if distance_data:
+                self.cell_histories.update({'mean_separation':[]})
+                self.cell_histories.update({'mean_distance':[]})
             self.cell_histories.update({key:[] for key in self.properties.keys()})
         try: 
             len(idx_list)
@@ -127,6 +130,10 @@ class Tissue(object):
                 _add_lists_to_list(valist,self.get_neighbour_cell_ids(idx_list,True))
             elif key == 'nextnn':
                 _add_lists_to_list(valist,self.get_next_nearest_neighbour_cell_ids(idx_list,True))
+            elif key == 'mean_separation':
+                _add_to_list(valist,self.mesh.mean_cell_separation())
+            elif key == 'mean_distance':
+                _add_to_list(valist,self.mesh.mean_cell_distance())
             elif key == 'position':
                 if valist is None:
                     self.cell_histories['position'] = self.mesh.centres[idx_list]

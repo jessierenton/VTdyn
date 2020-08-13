@@ -1,1 +1,0 @@
-used pressure measure considering only repulsive part of force

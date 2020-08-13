@@ -1,8 +1,3 @@
-interaction_data/wints_CC
-interaction_data/ints_CC
-interaction_data/raw_data
-interaction_data/ints_CD
-interaction_data/wints_CD
 *.pyc
 *.out
 *.err

@@ -1,3 +1,0 @@
-param1.txt
-param2.txt
-param3.txt

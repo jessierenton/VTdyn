@@ -11,7 +11,7 @@ import sys,os
 import itertools 
 
 L = 10 # population size N=l*l
-TIMEND = 2400. # simulation time (hours)
+TIMEND = 7200. # simulation time (hours)
 MAX_POP_SIZE = 1000
 TIMESTEP = 96. # time intervals to save simulation history
 DEATH_RATE = 0.25/24.

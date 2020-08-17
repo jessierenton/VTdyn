@@ -122,7 +122,7 @@ def _simulation(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,update
         step += 1
         mesh.move_all(tissue.dr(dt))
         if rand.rand() < (1./T_D)*N*dt:
-            update_birth_and_death(tissue,rand,DELTA,game,game_constants,updatez       
+            update_birth_and_death(tissue,rand,DELTA,game,game_constants,update)       
         tissue.update(dt)
         yield tissue
         

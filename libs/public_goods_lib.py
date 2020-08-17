@@ -80,12 +80,19 @@ def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_constants):
     return np.array([get_fitness(types[cell],types[neighbours],DELTA,game,game_constants) 
                         for cell,neighbours in enumerate(neighbours_by_cell)])
 
-def choose_birth_and_death(tissue,rand,DELTA,game,game_constants,update):
-    dead_cell = rand.randint(len(tissue))
+def update_birth_and_death(tissue,rand,DELTA,game,game_constants,update):
     if update == 'death_birth':
+        dead_cell = rand.randint(len(tissue))
         parent = choose_parent_death_birth(tissue,rand,DELTA,game,game_constants,update,dead_cell)
+        tissue.add_daughter_cells(parent,rand)
+        tissue.remove(parent)
+        tissue.remove(dead_cell) #kill random cell
     elif update == 'decoupled':
         parent = choose_parent_decoupled(tissue,rand,DELTA,game,game_constants)
+        tissue.add_daughter_cells(parent,rand)
+        tissue.remove(parent)
+        dead_cell = rand.randint(len(tissue))
+        tissue.remove(dead_cell) #kill random cell
     return parent,dead_cell
 
 def choose_parent_death_birth(tissue,rand,DELTA,game,game_constants,dead_cell):
@@ -115,10 +122,7 @@ def _simulation(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,update
         step += 1
         mesh.move_all(tissue.dr(dt))
         if rand.rand() < (1./T_D)*N*dt:
-            parent,dead_cell = choose_birth_and_death(tissue,rand,DELTA,game,game_constants,update)
-            tissue.add_daughter_cells(parent,rand)
-            tissue.remove(parent)
-            tissue.remove(dead_cell) #kill random cell
+            update_birth_and_death(tissue,rand,DELTA,game,game_constants,updatez       
         tissue.update(dt)
         yield tissue
         

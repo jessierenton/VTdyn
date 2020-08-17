@@ -14,10 +14,9 @@ NUMBER_SIMS = 10000
 BATCH_SIZE = 1000
 DELTA = 0.025
 L = 10 # population size N=l*l
-TIMEND = 80000. # simulation time (hours)
-TIMESTEP = 96. # time intervals to save simulation history
-DEATH_RATE = 0.25/24.
-INIT_TIME = 96.
+TIMEND = 10000. # simulation time (hours)
+TIMESTEP = 12. # time intervals to save simulation history
+INIT_TIME = 12.
 
 PARENTDIR = 'VD_fixprobs/'
 THRESHOLD = int(sys.argv[1]) # first command line arg is threshold number volunteers
@@ -29,7 +28,6 @@ game = lib.volunteers_dilemma
 simulation = lib.simulation_decoupled_update
 
 with open(PARENTDIR+'info',"w") as f:
-    f.write('death_rate = %.6f\n'%DEATH_RATE)
     f.write('pop size = %3d\n'%(L*L))
     f.write('timestep = %.1f'%TIMESTEP)
 

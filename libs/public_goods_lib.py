@@ -65,11 +65,14 @@ def volunteers_dilemma(cell_type,neighbour_types,b,c,M):
 def benefit_function_game(cell_type,neighbour_types,benefit_function,benefit_function_params,b,c):
     return -c*cell_type + b*benefit_function(np.sum(neighbour_types)+cell_type,len(neighbour_types)+1,*benefit_function_params)
 
-def logistic_benefit(j,Ng,s,k):
-    return (logistic_function(j,Ng,s,k)-logistic_function(0,Ng,s,k))/(logistic_function(Ng,Ng,s,k)-logistic_function(0,Ng,s,k))
+def sigmoid_game(cell_type,neighbour_types,b,c,s,h):
+    return -c*cell_type + b*logistic_benefit(np.sum(neighbour_types)+cell_type,len(neighbour_types)+1,s,h)
 
-def logistic_function(j,Ng,s,k):
-    return 1./(1.+np.exp(s*(k-j)/Ng))
+def logistic_benefit(j,k,s,h):
+    return (logistic_function(j,k,s,h)-logistic_function(0,k,s,h))/(logistic_function(k,k,s,h)-logistic_function(0,k,s,h))
+
+def logistic_function(j,k,s,h):
+    return 1./(1.+np.exp(s*(h-float(j)/k)))
 
 def get_fitness(cell_type,neighbour_types,DELTA,game,game_constants):
     """calculate fitness of single cell"""

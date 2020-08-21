@@ -17,12 +17,12 @@ rand = np.random.RandomState()
 simulation = lib.simulation_decoupled_update  #simulation routine imported from lib
 DELTA = 0.025
 b,c = 5.,1.
-# threshold = 2
+s,h = 10,0.5
 # game = lib.volunteers_dilemma
 # game_constants = (b,c,threshold)
 
-game = lib.N_person_prisoners_dilemma
-game_constants = (b,c)
+game = lib.sigmoid_game
+game_constants = (b,c,s,h)
 
-history = lib.run_simulation(simulation,l,timestep,timend,rand,DELTA,game,game_constants,mutant_num=5,
+history = lib.run_simulation(simulation,l,timestep,timend,rand,DELTA,game,game_constants,mutant_num=20,
                 init_time=init_time,til_fix=True,save_areas=False,progress_on=True)

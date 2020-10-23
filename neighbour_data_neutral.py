@@ -14,9 +14,9 @@ import pandas as pd
 
 def distribution_data(history,coop_id,i):
     return [{'tissueid':i,'time':int(tissue.time),'n':sum(tissue.properties['ancestor']==coop_id),'k':len(cell_neighbours),
-                'j':sum((tissue.properties['ancestor']==coop_id)[cell_neighbours])} 
+                'j':sum((tissue.properties['ancestor']==coop_id)[cell_neighbours]),'type': 1 if tissue.properties['ancestor'][idx]==coop_id else 0} 
                 for tissue in history if 1<=sum(tissue.properties['ancestor']==coop_id)<100
-                    for idx,cell_neighbours in enumerate(tissue.mesh.neighbours) if tissue.properties['ancestor'][idx]==coop_id]     
+                    for idx,cell_neighbours in enumerate(tissue.mesh.neighbours)]     
 
 def run_sim(i):
     """run a single simulation and save interaction data for each clone"""

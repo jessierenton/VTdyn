@@ -20,6 +20,7 @@ INIT_TIME = 12.
 PARENTDIR = 'SIG_fixprobs/'
 
 s,h = float(sys.argv[1]),float(sys.argv[2]) # command line args give params for logistic function
+b_vals = np.array(sys.argv[3:],dtype=float) # remaining command line args give b values
 PARENTDIR += '/h%.3f_s%03.1f/'%(h,s)
 if not os.path.exists(PARENTDIR): # if the outdir doesn't exist create it
      os.makedirs(PARENTDIR)
@@ -32,6 +33,7 @@ with open(PARENTDIR+'info',"w") as f:
     f.write('timestep = %.1f'%TIMESTEP)
 
 def fixed(history,i,b):
+    """returns 1/0 if cooperation/defection fixates, otherwise returns -1 (and saves mutant history)"""
     if 0 not in history[-1].properties['type']:
         fix = 1  
     elif 1 not in history[-1].properties['type']:
@@ -45,7 +47,7 @@ def run_single_unpack(args):
     return run_single(*args)
 
 def run_single(i,b):
-    """run a single voronoi tessellation model simulation"""
+    """run a single simulation to fixation"""
     game_constants = (b,1.,s,h)
     rand = np.random.RandomState()
     history = lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,DELTA,game,game_constants,mutant_num=1,
@@ -56,6 +58,7 @@ def run_single(i,b):
     return fixation
     
 def run_parallel(b_vals,number_sims,batch_size):
+    """run simulations in parallel and save fixation data"""
     for b in b_vals:
         pool = Pool(cpu_count()-1,maxtasksperchild=1000)
         fixation = np.array([f for f in pool.imap(run_single_unpack,product(range(number_sims),[b]))]) 
@@ -70,5 +73,4 @@ def run_parallel(b_vals,number_sims,batch_size):
                 wfile.write('%d    %d    %d\n'%(fixed,lost,incomplete))
 
 
-b_vals = np.array(sys.argv[3:],dtype=float) #succeeding CLA are b values
 run_parallel(b_vals,NUMBER_SIMS,BATCH_SIZE)  

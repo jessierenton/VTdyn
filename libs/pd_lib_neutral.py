@@ -3,10 +3,9 @@ import sys
 import numpy as np
 import itertools
 import structure
-from structure.global_constants import T_D,dt,ETA
+from structure.global_constants import T_D,dt,ETA,MU
 from structure.cell import Tissue, BasicSpringForceNoGrowth
 import structure.initialisation as init
-from structure.global_constants import MU,T_M,ETA
 
 def print_progress(step,N_steps):
     sys.stdout.write("\r %.2f %%"%(step*100./N_steps))

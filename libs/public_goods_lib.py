@@ -17,26 +17,40 @@ def run(simulation,N_step,skip):
 
 def run_generator(simulation,N_step,skip):
     """generator for running a given simulation for N_step iterations
-    returns generator for of tissue objects at intervals given by skip"""
+    returns generator of tissue objects at intervals given by skip"""
     return itertools.islice(simulation,0,N_step,skip)
 
 def run_return_events(simulation,N_step):
+    """run given simulation for N_step iterations
+    returns list of tissue objects containing all tissues immediately after an update event occured"""
     return [tissue.copy() for tissue in itertools.islice(simulation,N_step) if tissue is not None]
 
 def run_return_final_tissue(simulation,N_step):
+    """run given simulation for N_step iterations
+    returns final tissue object"""
     return next(itertools.islice(simulation,N_step,None))
 
 def run_til_fix(simulation,N_step,skip,include_fixed=True):
+    """run a given simulation until fixation or for N_step iterations (whichever is shorter)
+    returns list of tissue objects at intervals given by skip (includes final fixed tissue if include_fixed is True)"""
     return [tissue.copy() for tissue in generate_til_fix(simulation,N_step,skip,include_fixed=include_fixed)]
+    
+def run_til_fix_return_events(simulation,N_step,skip,include_fixed=True):
+    """run a given simulation until fixation or for N_step iterations (whichever is shorter)
+    returns list of tissue objects containing all tissues immediately after an update event occurred (includes final fixed tissue if include_fixed is True)"""
+    return [tissue.copy() for tissue in generate_til_fix(simulation,N_step,include_fixed=include_fixed) if tissue is not None]
         
 def fixed(tissue):
+    """returns True if tissue has reached fixation"""
+    if tissue is None:
+        return False
     try:
         return (1 not in tissue.properties['type'] or 0 not in tissue.properties['type'])
     except KeyError:
         return np.all(tissue.properties['ancestor']==tissue.properties['ancestor'][0])
     
 
-def generate_til_fix(simulation,N_step,skip,include_fixed=True):
+def generate_til_fix(simulation,N_step,skip=1,include_fixed=True):
     for tissue in itertools.islice(simulation,0,N_step,skip):
         if not fixed(tissue):
             yield tissue
@@ -45,8 +59,7 @@ def generate_til_fix(simulation,N_step,skip,include_fixed=True):
                 yield tissue
             break
 
-#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#------------------------------------------POISSON-CONSTANT-POP-SIZE-AND-FITNESS------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------ Define payoffs for various games ------------------------------------------------------------
 
 def prisoners_dilemma_averaged(cell_type,neighbour_types,b,c):
     """calculate average payoff for single cell"""
@@ -63,16 +76,19 @@ def volunteers_dilemma(cell_type,neighbour_types,b,c,M):
     return -c*cell_type +b*((np.sum(neighbour_types)+cell_type)>=M)
 
 def benefit_function_game(cell_type,neighbour_types,benefit_function,benefit_function_params,b,c):
+    """defines the payoff for an arbitrary benefit function and given benefit function params"""
     return -c*cell_type + b*benefit_function(np.sum(neighbour_types)+cell_type,len(neighbour_types)+1,*benefit_function_params)
 
 def sigmoid_game(cell_type,neighbour_types,b,c,s,h):
     return -c*cell_type + b*logistic_benefit(np.sum(neighbour_types)+cell_type,len(neighbour_types)+1,s,h)
 
-def logistic_benefit(j,k,s,h):
-    return (logistic_function(j,k,s,h)-logistic_function(0,k,s,h))/(logistic_function(k,k,s,h)-logistic_function(0,k,s,h))
+def logistic_benefit(j,N,s,h):
+    return (logistic_function(j,N,s,h)-logistic_function(0,N,s,h))/(logistic_function(N,N,s,h)-logistic_function(0,N,s,h))
 
-def logistic_function(j,k,s,h):
-    return 1./(1.+np.exp(s*(h-float(j)/k)))
+def logistic_function(j,N,s,h):
+    return 1./(1.+np.exp(s*(h-float(j)/N)))
+
+# ----------------------------------------------------------------------------------------------------------------
 
 def get_fitness(cell_type,neighbour_types,DELTA,game,game_constants):
     """calculate fitness of single cell"""
@@ -84,6 +100,7 @@ def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_constants):
                         for cell,neighbours in enumerate(neighbours_by_cell)])
 
 def update_birth_and_death(tissue,rand,DELTA,game,game_constants,update):
+    """update tissue with a cell division and cell death according to game and update rule"""
     if update == 'death_birth':
         dead_cell = rand.randint(len(tissue))
         parent = choose_parent_death_birth(tissue,rand,DELTA,game,game_constants,update,dead_cell)
@@ -99,6 +116,7 @@ def update_birth_and_death(tissue,rand,DELTA,game,game_constants,update):
     return parent,dead_cell
 
 def choose_parent_death_birth(tissue,rand,DELTA,game,game_constants,dead_cell):
+    """choose cells to die/divide based on fitnesses for death-birth update rule"""
     dead_cell_neighbours = tissue.mesh.neighbours[dead_cell]
     if game is None:
         return rand.choice(dead_cell_neighbours)
@@ -109,15 +127,18 @@ def choose_parent_death_birth(tissue,rand,DELTA,game,game_constants,dead_cell):
         return rand.choice(dead_cell_neighbours,p=fitnesses/sum(fitnesses))
 
 def choose_parent_decoupled(tissue,rand,DELTA,game,game_constants):
+    """choose parent cell based on game and fitnesses"""
     if game is None:
         return rand.randint(len(tissue))
     else:
         fitnesses = recalculate_fitnesses(tissue.mesh.neighbours,tissue.properties['type'],DELTA,game,game_constants)
         return np.where(rand.multinomial(1,fitnesses/sum(fitnesses))==1)[0][0]
 
-def _simulation(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,update,eta=ETA,progress_on=False):
+def _simulation(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,update,eta=ETA,progress_on=False,return_events=False):
+    """run simulation for given update rule"""
     step = 0.
     yield tissue
+    event_occurred = False
     while True:
         if progress_on: print_progress(step,N_steps)
         N= len(tissue)
@@ -125,19 +146,24 @@ def _simulation(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,update
         step += 1
         mesh.move_all(tissue.dr(dt))
         if rand.rand() < (1./T_D)*N*dt:
+            event_occurred = True
             update_birth_and_death(tissue,rand,DELTA,game,game_constants,update)       
         tissue.update(dt)
-        yield tissue
+        if not return_events or event_occurred: 
+            event_occurred = False
+            yield tissue
+        else: yield None
+            
         
-def simulation_decoupled_update(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,eta=ETA,progress_on=False):
-    """simulation loop for decoupled update rule"""
+def simulation_decoupled_update(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,eta=ETA,progress_on=False,return_events=False):
+    """run simulation for decoupled update rule"""
     update = 'decoupled'
-    return _simulation(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,update,eta,progress_on)
+    return _simulation(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,update,eta,progress_on,return_events=return_events)
 
-def simulation_death_birth(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,eta=ETA,progress_on=False):
-    """simulation loop for death-birth update rule"""
+def simulation_death_birth(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,eta=ETA,progress_on=False,return_events=False):
+    """run simulation for death-birth update rule"""
     update = 'death_birth'
-    return _simulation(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,update,eta,progress_on)
+    return _simulation(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,update,eta,progress_on,return_events=return_events)
 
 def simulation_no_division(tissue,dt,N_steps,rand,eta=ETA):
     """run tissue simulation with no death or division"""
@@ -159,7 +185,7 @@ def initialise_tissue(simulation,N,dt,timend,timestep,rand,mu=MU,save_areas=Fals
     return tissue
 
 def run_simulation(simulation,N,timestep,timend,rand,DELTA,game,game_constants,init_time=None,mu=MU,eta=ETA,dt=dt,til_fix=True,generator=False,save_areas=False,
-                tissue=None,mutant_num=1,save_cell_histories=False,progress_on=False,**kwargs):
+                tissue=None,mutant_num=1,save_cell_histories=False,progress_on=False,return_events=False,**kwargs):
     """initialise tissue with NxN cells and run given simulation with given game and constants.
             starts with single cooperator
             ends at time=timend OR if til_fix=True when population all cooperators (type=1) or defectors (2)
@@ -174,10 +200,12 @@ def run_simulation(simulation,N,timestep,timend,rand,DELTA,game,game_constants,i
         tissue.properties['ancestor']=np.arange(N*N)
     if til_fix:
         include_fix = not (til_fix=='exclude_final')
-        if generator:
+        if return_events: history = run_til_fix_return_events(simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,game_constants,eta=eta,progress_on=progress_on,return_events=True,**kwargs),timend/dt,include_fix)
+        elif generator:
             history = generate_til_fix(simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,game_constants,eta=eta,progress_on=progress_on,**kwargs),timend/dt,timestep/dt,include_fix)
         else:
             history = run_til_fix(simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,game_constants,eta=eta,progress_on=progress_on,**kwargs),timend/dt,timestep/dt)
+    elif return_events: history = run_return_events(simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,game_constants,eta=eta,progress_on=progress_on,return_events=True,**kwargs),timend/dt)
     else:
         history = run(simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,game_constants,eta=eta,progress_on=progress_on,**kwargs),timend/dt,timestep/dt)
     return history

@@ -12,19 +12,21 @@ import os
 A0 = np.sqrt(3)/2
 beige = '#F4EDD6'
 DEFAULT_PALETTE = np.array((beige,'#688A87','#FF70C3'))
+DELTA = 0.025
 
 #functions for plotting and animating tissue objects/histories
 
 def set_heatmap_colours(heat_map,palette=None,return_palette_only=False):
     if 'bins' in heat_map: bins = heat_map['bins']
     else: bins = 100
-    if palette is None: palette = np.array(sns.cubehelix_palette(bins,start=.5,rot=-.75))
+    if palette is None:
+            palette = np.array(sns.cubehelix_palette(bins,start=.5,rot=-.2))
     if return_palette_only: 
         return palette
     else:
         data = heat_map['data']
         if 'lims' in heat_map: dmin,dmax = heat_map['lims']
-        else: dmin,dmax = np.floor(np.min(data)),np.ceil(np.max(data))
+        else: dmin,dmax = np.min(data),np.max(data)
         bin_bounds = np.arange(bins)*(dmax-dmin)/bins+dmin
         data_bins = np.digitize(data,bin_bounds)-1
         return palette[data_bins],palette,bin_bounds
@@ -161,7 +163,7 @@ def plot_recent_divisions(tissue,n,ax,palette=None):
     
 def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None,animate=False,
                 heat_map=None,plot_vals=None,textcolor='black',figsize=None,lw=2.5,edgecolor='k',time=False,threshold_area=None,
-                neighbours_of_recent_deaths=None,recent_divisions=None):
+                neighbours_of_recent_deaths=None,recent_divisions=None,fitness=False,game=None,game_constants=None):
     """plot tissue object with torus geometry
     args
     ---------------
@@ -180,6 +182,7 @@ def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show
         heat_map['data'] is array of floats with data val for each cell
         options to provide 'palette', 'bins':(int) and 'lims':(float,float)
     plot_vals: (array,str) array gives data val for each cell, str gives format to convert to text
+    fitness: (bool) is True must provide game and game_constants to calculate fitness
     """
     width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
     centres = tissue.mesh.centres 
@@ -196,6 +199,8 @@ def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show
         fig,ax=create_axes(tissue,figsize)
     ax.set_xticks([])
     ax.set_yticks([])
+    if fitness:
+        heat_map = {'data':'fitness'}
     if key is None and colours is None and heat_map is None:
         if palette is not None: c = palette[0]
         else: c = beige
@@ -205,12 +210,16 @@ def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show
             if key == 'CIP':
                 tissue.properties['CIP'] = (tissue.mesh.areas>threshold_area)*1
             if palette is None: palette = set_key_palette(key,tissue=tissue)
-            colours = palette[tissue.properties[key]]         
+            colours = palette[tissue.properties[key]]                     
         elif heat_map is not None:
+            if heat_map['data']=='fitness':
+                heat_map['data'] = recalculate_fitnesses(tissue.mesh.neighbours,tissue.properties['type'],DELTA,game,game_constants)
             colours,palette,bin_bounds = set_heatmap_colours(heat_map,palette)
             if 'show_cbar' in heat_map:
                 if heat_map['show_cbar']:
                     plot_colour_bar(fig,palette,bin_bounds)
+            elif not animate: plot_colour_bar(fig,palette,bin_bounds)
+            
         coll = PatchCollection([PolygonPatch(p,facecolor = c,linewidth=lw,edgecolor=edgecolor) for p,c in zip(mp,colours)],match_original=True)
         ax.add_collection(coll) 
     if show_centres: 
@@ -317,6 +326,43 @@ def plot_springs(tissue,ax,color='k'):
             if i<j:
                 plot_spring(r1,r2,ax,color)
                 
+
+######## FITNESS FUNCTIONS ##########
+
+
+def prisoners_dilemma_averaged(cell_type,neighbour_types,b,c):
+    """calculate average payoff for single cell"""
+    return -c*cell_type+b*np.sum(neighbour_types)/len(neighbour_types)
+
+def prisoners_dilemma_accumulated(cell_type,neighbour_types,b,c):
+    """calculate accumulated payoff for single cell"""
+    return -c*cell_type*len(neighbour_types)+b*np.sum(neighbour_types)
+
+def N_person_prisoners_dilemma(cell_type,neighbour_types,b,c):
+    return -c*cell_type + b*(np.sum(neighbour_types)+cell_type)/(len(neighbour_types)+1)
+
+def volunteers_dilemma(cell_type,neighbour_types,b,c,M):
+    return -c*cell_type +b*((np.sum(neighbour_types)+cell_type)>=M)
+
+def benefit_function_game(cell_type,neighbour_types,benefit_function,benefit_function_params,b,c):
+    return -c*cell_type + b*benefit_function(np.sum(neighbour_types)+cell_type,len(neighbour_types)+1,*benefit_function_params)
+
+def logistic_benefit(j,Ng,s,k):
+    return (logistic_function(j,Ng,s,k)-logistic_function(0,Ng,s,k))/(logistic_function(Ng,Ng,s,k)-logistic_function(0,Ng,s,k))
+
+def logistic_function(j,Ng,s,k):
+    return 1./(1.+np.exp(s*(k-j)/Ng))
+
+def get_fitness(cell_type,neighbour_types,DELTA,game,game_constants):
+    """calculate fitness of single cell"""
+    return 1+DELTA*game(cell_type,neighbour_types,*game_constants)
+
+def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_constants):
+    """calculate fitnesses of all cells"""
+    return np.array([get_fitness(types[cell],types[neighbours],DELTA,game,game_constants) 
+                        for cell,neighbours in enumerate(neighbours_by_cell)])
+
+################################
 
 #plotting functions for a PLANAR geometry tissue object IN DEVELOPMENT   
     

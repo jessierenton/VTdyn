@@ -11,9 +11,10 @@ import libs.data as data
 from functools import partial
 import pandas as pd
 
-def mean_proportion_coop_neighbours(idxlist,all_neighbours,cooperators):
+def mean_proportion_coop_neighbours_ready(idxlist,all_neighbours,cooperators):
     neighbours = [all_neighbours[i] for i in idxlist]
-    return np.mean([float(sum(cooperators[cell_neighbours]))/len(cell_neighbours) for cell_neighbours in neighbours])
+    data = [float(sum(cooperators[cell_neighbours]))/len(cell_neighbours) for cell_neighbours in neighbours]
+    return np.mean(data),np.std(data)
     
 def proliferating_cells_data(tissue,alpha,mutant_index,n):
     cooperators = tissue.properties['ancestor']==mutant_index
@@ -21,8 +22,10 @@ def proliferating_cells_data(tissue,alpha,mutant_index,n):
     proliferating_cooperators = np.where(proliferating[cooperators])[0]
     proliferating_defectors = np.where(proliferating[~cooperators])[0]
     return (n,len(tissue)-n,len(proliferating_cooperators),len(proliferating_defectors),
-        mean_proportion_coop_neighbours(proliferating_cooperators,tissue.mesh.neighbours,cooperators),
-        mean_proportion_coop_neighbours(proliferating_defectors,tissue.mesh.neighbours,cooperators))
+        *mean_proportion_coop_neighbours(np.where(cooperators)[0],tissue.mesh.neighbours,cooperators),
+        *mean_proportion_coop_neighbours(np.where(~cooperators)[0],tissue.mesh.neighbours,cooperators,
+        *mean_proportion_coop_neighbours(proliferating_cooperators,tissue.mesh.neighbours,cooperators),
+        *mean_proportion_coop_neighbours(proliferating_defectors,tissue.mesh.neighbours,cooperators))
 
 def run_sim(alpha,db,m,i):
     """run a single simulation and save interaction data for each clone"""
@@ -38,11 +41,17 @@ def run_sim(alpha,db,m,i):
     return data
 
 def sort_data(data):
-    data = [[i,round(time),nc,nd,proliferating_coop,proliferating_defect,prop_neighbours_coop,prop_neighbours_defect]
+    data = [[i,round(time),nc,nd,proliferating_coop,proliferating_defect,
+                prop_neighbours_coop,prop_neighbours_coop_std,prop_neighbours_defect,prop_neighbours_defect_std,
+                prop_neighbours_coop_ready,prop_neighbours_coop_ready_std,prop_neighbours_defect_ready,prop_neighbours_defect_ready_std]
                 for i,run_data in enumerate(data)
-                    for time,(nc,nd,proliferating_coop,proliferating_defect,prop_neighbours_coop,prop_neighbours_defect) 
-                                in run_data]
-    df = pd.DataFrame(data,columns = ['run','time','nc','nd','ncready','ndready','propccready','propcdready'])
+                    for time,(nc,nd,proliferating_coop,proliferating_defect,
+                    prop_neighbours_coop,prop_neighbours_coop_std,prop_neighbours_defect,prop_neighbours_defect_std,
+                    prop_neighbours_coop_ready,prop_neighbours_coop_ready_std,prop_neighbours_defect_ready,prop_neighbours_defect_ready_std
+                    ) in run_data]
+    df = pd.DataFrame(data,columns = ['run','time','nc','nd','ncready','ndready',
+                                        'propcc','propccstd','propcd','propcdstd'
+                                        'propccready','propccreadystd','propcdready','propcdreadystd'])
     return df
 
 L = 10 # population size N = l*l

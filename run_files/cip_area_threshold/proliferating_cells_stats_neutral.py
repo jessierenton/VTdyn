@@ -21,11 +21,16 @@ def proliferating_cells_data(tissue,alpha,mutant_index,n):
     proliferating = tissue.mesh.areas > alpha*A0
     proliferating_cooperators = np.where(proliferating[cooperators])[0]
     proliferating_defectors = np.where(proliferating[~cooperators])[0]
+    prop_neighbours_coop,prop_neighbours_coop_std = mean_proportion_coop_neighbours(np.where(cooperators)[0],tissue.mesh.neighbours,cooperators)
+    prop_neighbours_defect,prop_neighbours_defect_std = mean_proportion_coop_neighbours(np.where(~cooperators)[0],tissue.mesh.neighbours,cooperators)
+    prop_neighbours_coop_ready,prop_neighbours_coop_ready_std = mean_proportion_coop_neighbours(proliferating_cooperators,tissue.mesh.neighbours,cooperators)
+    prop_neighbours_defect_ready,prop_neighbours_defect_ready_std = mean_proportion_coop_neighbours(proliferating_defectors,tissue.mesh.neighbours,cooperators)
     return (n,len(tissue)-n,len(proliferating_cooperators),len(proliferating_defectors),
-        *mean_proportion_coop_neighbours(np.where(cooperators)[0],tissue.mesh.neighbours,cooperators),
-        *mean_proportion_coop_neighbours(np.where(~cooperators)[0],tissue.mesh.neighbours,cooperators,
-        *mean_proportion_coop_neighbours(proliferating_cooperators,tissue.mesh.neighbours,cooperators),
-        *mean_proportion_coop_neighbours(proliferating_defectors,tissue.mesh.neighbours,cooperators))
+                    prop_neighbours_coop,prop_neighbours_coop_std,prop_neighbours_defect,prop_neighbours_defect_std,
+                        prop_neighbours_coop_ready,prop_neighbours_coop_ready_std,prop_neighbours_defect_ready,prop_neighbours_defect_ready_std)
+        
+        
+        
 
 def run_sim(alpha,db,m,i):
     """run a single simulation and save interaction data for each clone"""

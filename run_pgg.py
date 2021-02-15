@@ -9,7 +9,7 @@ import pandas as pd
 """run a single voronoi tessellation model simulation"""
 
 l = 10 # population size N=l*l
-timend = 10 # simulation time (hours)
+timend = 100 # simulation time (hours)
 timestep = 1.0 # time intervals to save simulation history
 init_time = 12.
 rand = np.random.RandomState()

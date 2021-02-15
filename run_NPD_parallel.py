@@ -20,7 +20,11 @@ PARENTDIR = 'NPD_fixprobs/'
 if not os.path.exists(PARENTDIR): # if the outdir doesn't exist create it
      os.makedirs(PARENTDIR)
 
+<<<<<<< .merge_file_B7WdsJ
 game = lib.prisoners_dilemma_averaged
+=======
+game = lib.N_person_prisoners_dilemma
+>>>>>>> .merge_file_yXo5uQ
 simulation = lib.simulation_decoupled_update
 
 with open(PARENTDIR+'info',"w") as f:

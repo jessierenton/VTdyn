@@ -16,7 +16,7 @@ dt = 0.04 #hours
 # params for two-player games and pgg (original decoupled model)
 # T_M = 1.
 # T_D = 12.
-# # # Osborne 2017 params (original)
+# # Osborne 2017 params (original)
 # MU = 50
 # ETA = 1.0
 # dt = 0.005 #hours

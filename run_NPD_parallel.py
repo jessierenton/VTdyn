@@ -1,6 +1,4 @@
 import numpy as np
-# from pathos.multiprocessing import cpu_count
-# from pathos.pools import ParallelPool as Pool
 from multiprocessing import Pool,cpu_count
 import libs.public_goods_lib as lib #library for simulation routines
 import libs.data as data
@@ -30,6 +28,7 @@ with open(PARENTDIR+'info',"w") as f:
     f.write('timestep = %.1f'%TIMESTEP)
 
 def fixed(history,i,b):
+    """returns 1/0 if cooperation/defection fixates, otherwise returns -1 (and saves mutant history)"""
     if 0 not in history[-1].properties['type']:
         fix = 1  
     elif 1 not in history[-1].properties['type']:
@@ -43,7 +42,7 @@ def run_single_unpack(args):
     return run_single(*args)
 
 def run_single(i,b):
-    """run a single voronoi tessellation model simulation"""
+    """run a single simulation to fixation"""
     game_constants = (b,1.)
     rand = np.random.RandomState()
     history = lib.run_simulation(simulation,L,TIMESTEP,TIMEND,rand,DELTA,game,game_constants,mutant_num=1,
@@ -54,6 +53,7 @@ def run_single(i,b):
     return fixation
     
 def run_parallel(b_vals,number_sims,batch_size):
+    """run simulations in parallel and save fixation data"""
     for b in b_vals:
         pool = Pool(cpu_count()-1,maxtasksperchild=1000)
         fixation = np.array([f for f in pool.imap(run_single_unpack,product(range(number_sims),[b]))]) 
@@ -67,5 +67,5 @@ def run_parallel(b_vals,number_sims,batch_size):
                 incomplete = len(np.where(fixation_batch==-1)[0])
                 wfile.write('%d    %d    %d\n'%(fixed,lost,incomplete))
 
-b_vals = np.array(sys.argv[1:],dtype=float)
-run_parallel(b_vals,NUMBER_SIMS,BATCH_SIZE)  
+b_vals = np.array(sys.argv[1:],dtype=float) #read b_vals as command line argument
+run_parallel(b_vals,NUMBER_SIMS,BATCH_SIZE) 

@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --cpus-per-task=88
-#SBATCH --array=0-1
+#SBATCH --cpus-per-task=60
+#SBATCH --array=0-7
 #SBATCH --nodes=1
-PARAMFILE=pd_params8/p3
+PARAMFILE=pd_params9/p0
 number=$(($SLURM_ARRAY_TASK_ID+1))
 p1=`(sed -n "$number"p $PARAMFILE) | awk '{print $1}'`
 p2=`(sed -n "$number"p $PARAMFILE) | awk '{print $2}'`

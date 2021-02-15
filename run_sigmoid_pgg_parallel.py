@@ -17,7 +17,7 @@ L = 10 # population size N=l*l
 TIMEND = 10000. # simulation time (hours)
 TIMESTEP = 12. # time intervals to save simulation history
 INIT_TIME = 12.
-PARENTDIR = 'SIG_fixprobs/'
+PARENTDIR = 'SIG_fixprobs/mutantC'
 
 s,h = float(sys.argv[1]),float(sys.argv[2]) # command line args give params for logistic function
 PARENTDIR += '/h%.3f_s%03.1f/'%(h,s)
@@ -59,7 +59,7 @@ def run_parallel(b_vals,number_sims,batch_size):
     for b in b_vals:
         pool = Pool(cpu_count()-1,maxtasksperchild=1000)
         fixation = np.array([f for f in pool.imap(run_single_unpack,product(range(number_sims),[b]))]) 
-        with open(PARENTDIR+'b%.2f'%b,'w') as wfile:    
+        with open(PARENTDIR+'b%.2f'%b,'a') as wfile:    
             if number_sims%batch_size != 0: 
                 batch_size=1
             fixation = fixation.reshape((number_sims/batch_size,batch_size))

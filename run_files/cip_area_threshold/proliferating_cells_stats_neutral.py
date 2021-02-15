@@ -19,8 +19,8 @@ def mean_proportion_coop_neighbours_ready(idxlist,all_neighbours,cooperators):
 def proliferating_cells_data(tissue,alpha,mutant_index,n):
     cooperators = tissue.properties['ancestor']==mutant_index
     proliferating = tissue.mesh.areas > alpha*A0
-    proliferating_cooperators = np.where(proliferating[cooperators])[0]
-    proliferating_defectors = np.where(proliferating[~cooperators])[0]
+    proliferating_cooperators = np.where(proliferating&cooperators)[0]
+    proliferating_defectors = np.where(proliferating&~cooperators)[0]
     prop_neighbours_coop,prop_neighbours_coop_std = mean_proportion_coop_neighbours(np.where(cooperators)[0],tissue.mesh.neighbours,cooperators)
     prop_neighbours_defect,prop_neighbours_defect_std = mean_proportion_coop_neighbours(np.where(~cooperators)[0],tissue.mesh.neighbours,cooperators)
     prop_neighbours_coop_ready,prop_neighbours_coop_ready_std = mean_proportion_coop_neighbours(proliferating_cooperators,tissue.mesh.neighbours,cooperators)
@@ -55,7 +55,7 @@ def sort_data(data):
                     prop_neighbours_coop_ready,prop_neighbours_coop_ready_std,prop_neighbours_defect_ready,prop_neighbours_defect_ready_std
                     ) in run_data]
     df = pd.DataFrame(data,columns = ['run','time','nc','nd','ncready','ndready',
-                                        'propcc','propccstd','propcd','propcdstd'
+                                        'propcc','propccstd','propcd','propcdstd',
                                         'propccready','propccreadystd','propcdready','propcdreadystd'])
     return df
 

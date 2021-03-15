@@ -60,7 +60,7 @@ def plot_colour_bar(fig,palette,bin_bounds):
     for r in rects:
         ax.add_patch(r)
             
-def plot_tri_torus(tissue,fig=None,ax=None,time = None,label=False,node_colour='k',line_colour='k',lw=2):
+def plot_tri_torus(tissue,fig=None,ax=None,time = None,label=False,node_colour=DEFAULT_PALETTE[1],line_colour='k',lw=2):
     """plot Delaunay triangulation of a tissue object (i.e. cell centres and neighbour connections) with torus geometry"""
     width, height = tissue.mesh.geometry.width, tissue.mesh.geometry.height 
     if ax is None: 
@@ -76,7 +76,7 @@ def plot_tri_torus(tissue,fig=None,ax=None,time = None,label=False,node_colour='
     centres_3x3 = np.vstack([centres+[dx, dy] for dx in [-width, 0, width] for dy in [-height, 0, height]])
     tri = Delaunay(centres_3x3).simplices  
     plt.triplot(centres_3x3[:,0], centres_3x3[:,1], tri.copy(),color=line_colour,lw=lw)
-    plt.plot(centres_3x3[:,0], centres_3x3[:,1], 'o',color = node_colour)
+    plt.plot(centres_3x3[:,0], centres_3x3[:,1], 'o',markerfacecolor = node_colour, markeredgecolor=line_colour,markersize=14,markeredgewidth=1.5)
     if label:
         for i, coords in enumerate(tissue.mesh.centres):
             plt.text(coords[0],coords[1],str(i))
@@ -163,7 +163,7 @@ def plot_recent_divisions(tissue,n,ax,palette=None):
     
 def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None,animate=False,
                 heat_map=None,plot_vals=None,textcolor='black',figsize=None,lw=2.5,edgecolor='k',time=False,threshold_area=None,
-                neighbours_of_recent_deaths=None,recent_divisions=None,fitness=False,game=None,game_constants=None):
+                neighbours_of_recent_deaths=None,recent_divisions=None,fitness=False,game=None,game_constants=None,show_pop_size=False,show_time=True):
     """plot tissue object with torus geometry
     args
     ---------------
@@ -253,6 +253,10 @@ def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show
         plot_neighbours_of_most_recent_deaths(tissue,neighbours_of_recent_deaths,ax)
     if recent_divisions is not None:
         plot_recent_divisions(tissue,recent_divisions,ax)
+    if show_pop_size:
+        ax.text(-0.1,-0.1,"Z = %d"%N,transform=ax.transAxes)
+    if show_time:
+        ax.text(0.7,-0.1,"t = %.1f"%tissue.time,transform=ax.transAxes)
     if not animate: return ax
 
 def animate_torus(history, key = None, heat_map=None, savefile=None, index=None, delete_images=True,imagedir='images',pause=0.001,palette=None,time=False,**kwargs):

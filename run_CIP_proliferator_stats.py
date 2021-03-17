@@ -15,7 +15,7 @@ import pandas as pd
 L = 10 # population size N=l*l
 TIMEND = 7200. # simulation time (hours)
 MAX_POP_SIZE = 1000
-TIMESTEP = 96. # time intervals to save simulation history
+TIMESTEP = 12. # time intervals to save simulation history
 DEATH_RATE = 0.25/24.
 INIT_TIME = 96.
 

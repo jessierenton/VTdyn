@@ -150,6 +150,8 @@ def plot_recent_divisions(tissue,n,ax,palette=None):
     if tissue.cell_histories != {}:
         if palette is None:
             palette = sns.cubehelix_palette(n, start=0.4,dark=0,rot=0,light=0.5,reverse=True)
+        if tissue.time < (np.array(tissue.cell_histories['time'])[np.array(tissue.cell_histories['divided'])])[0]:
+            return
         centres=np.flip(tissue.mesh.centres,axis=0)
         ages = np.flip(tissue.age)
         for color,centre1,centre2,age1,age2 \

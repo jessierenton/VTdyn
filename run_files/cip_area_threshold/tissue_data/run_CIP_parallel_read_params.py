@@ -11,21 +11,21 @@ import sys,os
 import itertools 
 
 L = 10 # population size N=l*l
-TIMEND = 7200. # simulation time (hours)
+TIMEND = 1824. # simulation time (hours)
 MAX_POP_SIZE = 500
-TIMESTEP = 192. # time intervals to save simulation history
+TIMESTEP = 24. # time intervals to save simulation history
 DEATH_RATE = 0.25/24
-INIT_TIME = None
+INIT_TIME = 96.
 
 # DATA_SAVE_FIELDS = ["pop_size","cell_histories","cycle_phases",,
 #                     "cell_seperation"]
-DATA_SAVE_FIELDS = ["pop_size","cell_histories","areas","ages"]
+DATA_SAVE_FIELDS = ["pop_size","areas","ages"]
 
 for d in DATA_SAVE_FIELDS:
     if d not in data.FIELDS_DICT:
         raise ValueError("not all data types are correct")
 
-PARENTDIR = "CIP_data_area_threshold/N100_TD_0.25pd"
+PARENTDIR = "CIP_data_area_threshold/N100_TD_0.25pd2"
 
 with open(PARENTDIR+'/info',"w") as f:
     f.write('death_rate = %.3f\n'%DEATH_RATE)

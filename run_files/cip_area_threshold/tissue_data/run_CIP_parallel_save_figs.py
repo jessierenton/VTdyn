@@ -29,7 +29,7 @@ for d in DATA_SAVE_FIELDS:
     if d not in data.FIELDS_DICT:
         raise ValueError("not all data types are correct")
 
-PARENTDIR = "CIP_data_area_threshold/sweep_fixed_N100_db0.5_for_figs"
+PARENTDIR = "CIP_data_area_threshold/sweep_fixed_N100_db0.7_for_figs"
 if not os.path.exists(PARENTDIR): # if the outdir doesn't exist create it
      os.makedirs(PARENTDIR)
 
@@ -65,9 +65,9 @@ def run_multi(paramfile,repeats):
                         for i in range(repeats)]
     return map(run_single_unpack,args),parameters.T[0]
 
-paramfile = "params_for_figs1.txt"
+paramfile = "params_for_figs2.txt"
 repeats = 1 
 histories,threshold_vals = run_multi(paramfile,repeats)
 tissue_list = [history[-1] for history in histories]          
-vplt.multi_torus_plot(tissue_list,2,4,r'$\alpha = $',threshold_vals,figsize=(10,5))
+vplt.multi_torus_plot(tissue_list,2,4,r'$\alpha = $',threshold_vals,figsize=(5,2.8),lw=1.35)
 plt.savefig(PARENTDIR+'/tissues_varying_area_threshold.pdf',bbox_inches="tight")

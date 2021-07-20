@@ -5,3 +5,10 @@
 log/*
 *.pdf
 *.png
+info
+death_div_data
+h0.500_s10.0_b5.0
+neighbour_data_pgg
+params
+params_for_figs1.txt
+params_for_figs2.txt

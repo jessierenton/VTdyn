@@ -123,14 +123,14 @@ def set_ax(tissue,ax):
     ax.set_xticks([])
     ax.set_yticks([])
 
-def multi_torus_plot(tissue_list,nrows,ncols,param_name=None,param_vals=None,fmt='%.1f',figsize=None):
+def multi_torus_plot(tissue_list,nrows,ncols,param_name=None,param_vals=None,fmt='%.1f',figsize=None,fontsize=None,**kwargs):
     fig,axes = plt.subplots(nrows,ncols,figsize=figsize)
     for ax,tissue,param in zip(axes.flatten(),tissue_list,param_vals):
         set_ax(tissue,ax)
-        torus_plot(tissue,ax=ax,lw=1.5)
+        torus_plot(tissue,ax=ax,**kwargs)
         if param_name is not None and param_vals is not None:
-            ax.set_title(param_name+fmt%param)
-    plt.subplots_adjust(left=0.0,right=1.0,bottom=0.0,top=1.0,wspace=0.0,hspace=0.0)
+            ax.set_title(param_name+fmt%param,fontsize=fontsize)
+    plt.subplots_adjust(left=0.0,right=1.0,bottom=0.0,top=0.94,wspace=0.0,hspace=0.15)
 
 def plot_neighbours_of_most_recent_deaths(tissue,n,ax,palette=None):
     if tissue.cell_histories != {}:
@@ -165,7 +165,7 @@ def plot_recent_divisions(tissue,n,ax,palette=None):
     
 def torus_plot(tissue,palette=None,key=None,key_label=None,ax=None,fig=None,show_centres=False,cell_ids=False,mesh_ids=False,areas=False,boundary=False,colours=None,animate=False,
                 heat_map=None,plot_vals=None,textcolor='black',figsize=None,lw=2.5,edgecolor='k',time=False,threshold_area=None,
-                neighbours_of_recent_deaths=None,recent_divisions=None,fitness=False,game=None,game_constants=None,show_pop_size=False,show_time=True):
+                neighbours_of_recent_deaths=None,recent_divisions=None,fitness=False,game=None,game_constants=None,show_pop_size=False,show_time=False):
     """plot tissue object with torus geometry
     args
     ---------------

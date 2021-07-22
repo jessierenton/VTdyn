@@ -71,13 +71,25 @@ def prisoners_dilemma_accumulated(cell_type,neighbour_types,b,c):
     """calculate accumulated payoff for single cell"""
     return -c*cell_type*len(neighbour_types)+b*np.sum(neighbour_types)
 
-def get_fitness(cell_type,neighbour_types,DELTA,game,game_constants):
+def get_fitness_linear(cell_type,neighbour_types,DELTA,game,game_constants):
     """calculate fitness of single cell"""
     return 1+DELTA*game(cell_type,neighbour_types,*game_constants)
 
-def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_constants):
+def get_fitness_exp(cell_type,neighbour_types,DELTA,game,game_constants):
+    """calculate fitness of single cell"""
+    return np.exp(DELTA*game(cell_type,neighbour_types,*game_constants))
+
+def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_constants,fitness_map='linear'):
     """calculate fitnesses of all cells"""
-    return np.array([get_fitness(types[cell],types[neighbours],DELTA,game,game_constants) for cell,neighbours in enumerate(neighbours_by_cell)])
+    if fitness_map == 'linear': 
+        get_fitness = get_fitness_linear
+    elif fitness_map =='exp':
+        get_fitness = get_fitness_exp
+    return np.array([get_fitness(types[cell],types[neighbours],
+                    DELTA,game,game_constants) 
+                    for cell,neighbours 
+                        in enumerate(neighbours_by_cell)])
+
 
 # def simulation_with_mutation_ancestor_tracking(tissue,dt,N_steps,stepsize,rand,DELTA,game,constants,initial=False):
 #     """simulation loop for decoupled update rule with mutation. tracks ancestors in tissue.properties['ancestor']"""
@@ -132,6 +144,30 @@ def recalculate_fitnesses(neighbours_by_cell,types,DELTA,game,game_constants):
 #         complete = (1 not in tissue.properties['type'] or 0 not in tissue.properties['type']) and step%stepsize==0
 #         yield tissue
 
+
+def simulation_decoupled_update_exp_fitness(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,progress_on=False):
+    """simulation loop for decoupled update rule"""
+    step = 0.
+    yield tissue
+    while True:
+        if progress_on: print_progress(step,N_steps)
+        N= len(tissue)
+        properties = tissue.properties
+        mesh = tissue.mesh
+        step += 1
+        mesh.move_all(tissue.dr(dt))
+        if rand.rand() < (1./T_D)*N*dt:
+            fitnesses = recalculate_fitnesses(tissue.mesh.neighbours,
+                properties['type'],DELTA,game,game_constants,
+                fitness_map = 'exp')
+            mother = np.where(rand.multinomial(1,
+                            fitnesses/sum(fitnesses))==1)[0][0]   
+            tissue.add_daughter_cells(mother,rand)
+            tissue.remove(mother)
+            tissue.remove(rand.randint(N)) #kill random cell
+        tissue.update(dt)
+        
+        yield tissue
 
 def simulation_decoupled_update(tissue,dt,N_steps,stepsize,rand,DELTA,game,game_constants,progress_on=False):
     """simulation loop for decoupled update rule"""
@@ -223,16 +259,22 @@ def run_simulation(simulation,N,timestep,timend,rand,DELTA,game,constants,init_t
         returns history: list of tissue objects at time intervals given by timestep
             """
     if tissue is None:
-        tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),rand,save_areas=save_areas,save_cell_histories=save_cell_histories)
+        tissue = init.init_tissue_torus(N,N,0.01,BasicSpringForceNoGrowth(),
+            rand,save_areas=save_areas,save_cell_histories=save_cell_histories)
     tissue.properties['type'] = np.zeros(N*N,dtype=int)
     tissue.age = np.zeros(N*N,dtype=float)
     if init_time is not None:    
-        tissue = run_return_final_tissue(simulation(tissue,dt,init_time/dt,timestep/dt,rand,DELTA,game,constants),init_time/dt)
+        tissue = run_return_final_tissue(simulation(tissue,dt,init_time/dt,
+                    timestep/dt,rand,DELTA,game,constants),init_time/dt)
         tissue.reset()
     tissue.properties['ancestors']= np.arange(100,dtype=int)
     tissue.properties['type'][rand.choice(N*N,size=mutant_num,replace=False)]=1
     if til_fix:
-        history = run_til_fix(simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,constants,progress_on=progress_on),timend/dt,timestep/dt)
+        history = run_til_fix(simulation(tissue,dt,timend/dt,timestep/dt,
+                        rand,DELTA,game,constants,progress_on=progress_on),
+                        timend/dt,timestep/dt)
     else:
-        history = run(simulation(tissue,dt,timend/dt,timestep/dt,rand,DELTA,game,constants,progress_on=progress_on),timend/dt,timestep/dt)
+        history = run(simulation(tissue,dt,timend/dt,timestep/dt,
+                    rand,DELTA,game,constants,progress_on=progress_on),
+                    timend/dt,timestep/dt)
     return history

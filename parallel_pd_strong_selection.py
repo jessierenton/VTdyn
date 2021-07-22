@@ -6,7 +6,7 @@ from functools import partial
 import os
 import numpy as np
 import libs.data as data
-from libs.pd_lib import run_simulation,simulation_decoupled_update,prisoners_dilemma_averaged,prisoners_dilemma_accumulated
+from libs.pd_lib import run_simulation,simulation_decoupled_update_exp_fitness,prisoners_dilemma_averaged,prisoners_dilemma_accumulated
 from functools import partial
 
 """command line arguments
@@ -32,7 +32,7 @@ timestep = 12.0 #state saved every 12 hours
 
 rand = np.random.RandomState()
 
-outdir = 'VTpd_%s_decoupled'%(game_str)
+outdir = 'VTpd_%s_decoupled_delta%.1f'%(game_str,DELTA)
 if not os.path.exists(outdir): # if the outdir doesn't exist create it
      os.makedirs(outdir)
 with open(outdir+'/info','w') as f:

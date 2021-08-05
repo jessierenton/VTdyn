@@ -1,34 +1,20 @@
 #Code for Voronoi Tessellation model
 
-##To generate data on fixation probabilities:
-- for decoupled update run `python multirun_constant_N.py av 0 10 X_1 X_2 ... `
-	- X\_i are values of b up to 2 decimal places; av is for averaged payoffs; 0/10 are start/end batch numbers, i.e. this will run 10 batches x1000 simulations
-	- output saved in directory VTpd\_av\_decoupled
-	- data in files fixX (X=b to 2dp) for decoupled update
-	- data in form #fixed #lost #incomplete (sum=1000 across rows, each row is one batch)
-- for death-birth update run `python multirun_death_birth.py av 0 10 X_1 X_2 ... `
-	- same command line args and file structure as above
-	- output saved in directory VTpd\_av\_db
+code for running simulating invasion processes in the Voronoi tessellation model. Main code is divided into three subdirectories: structure, libs and run_files.
+- structure contains several modules needed to create and update a Tissue object, which represents the VT model at a single timestep
+	- cell.py: defines Tissue (has a Mesh and a Force as attributes, as well as individual cell information, such as ancestory, age, type etc. Also methods for updating the tissue, e.g. cells moving according to the force law, cell division and death.) and Force objects. 
+	- mesh.py: defines Mesh object(spatial information for the tissue including positions of cells, neighbour information, and methods for updating)
+	- global_constants.py: defines VT model parameters
+	- initialisation.py: functions for creating an initial Tissue
 
-
-##To generate interaction data:
-- run `python cluster_stats.py 5000` 
-	- command line arg is number of simulations
-	- produces interaction\_data/main\_text/raw\_data folder
-	- see data/interaction\_data/main\_text for processing and how to calculate Lambda_CC and fixation probabilities
-- run `python cluster_stats_vary_MU.py 500 -X`
-	- first command line arg is number of simulations
-	- second command line arg is MU. run for MU =0.1,1,10,25,50,100,250
-	- produces interaction\_data/supp\_vary\_MU/MU-X/raw\_data
-	- see data (as above)
+- libs contains modules with functions for running simulations
+	- pd_lib.py is for the additive prisoner's dilemma with decoupled or death-birth update rules
+	- public_goods_lib.py is for arbitrary multiplayer games with decoupled or death-birth update rules
+	- contact_inhibition_lib.py is for the additive prisoner's dilemma with seperate birth and death processes, where birth is only allowed above an area threshold
+	- plot.py contatins plotting routines (torus_plot and animate torus are most useful)
+	- data.py contains useful data manipulation routines
+- run_files contains various files for running simulations that import simulation routines from a given lib. These need to be moved into the main file to be run. Examples:
+	- pd_original/multirun_constant_N.py and d_original/multirun_death_birth.py are used for running simulations of the additive prisoner's dilemma (cooperator invasion) with decoupled and death-birth update rule respectively.
+	- cip_area_threshold/run_CIP_parallel_pd.py can be used for running simulations of the additive prisoner's dilemma with contact inhibition
 	
-##To generate neighbour distribution data for varying MU:
-- run `python get_data_vary_MU.py`
-- output saved to vary\_MU\_data
-
-##To plot tissue objects or create animation
-- need to import libs.plot as vplt
-- basic plot for tissue object (with torus geometry) use vplt.torus_plot(tissue) 
-- to view animation use vplt.animate_torus(tissue)
-- to save animation use vplt.save_mpg_torus(history,filename)
-- see file libs/plot.py for optional arguments
+More detailed instructions for running simulations of the additive prisoner's dilemma or public goods games with decoupled/death-birth update rules can be found in the repositories evo-epithelium and pgg-epithelium, respectively. These also contain data obtained from simulations. 

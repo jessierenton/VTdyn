@@ -61,15 +61,16 @@ def run_single(i):
                 return_events=False,save_cell_histories=False,N_limit=MAX_POP_SIZE,DELTA=DELTA,game=game,mutant_num=1,
                 domain_size_multiplier=domain_size_multiplier,rates=rates,threshold_area_fraction=threshold_area_fraction)
     fixation = fixed(history,i)
-    with open(PARENTDIR+'s%.2f_%s_time'%(DELTA,job_id),'a') as wfile:
-        wfile.write('%5d    %5d    %d\n'%(i,history[-1].time,fixation))
+    meanpopsize = np.mean([len(tissue) for tissue in history])
+    with open(PARENTDIR+'s%.2f_%s_time.txt'%(DELTA,job_id),'a') as wfile:
+        wfile.write('%5d    %5d    %d    %d\n'%(i, history[-1].time, fixation, meanpopsize))
     return fixation
     
 def run_parallel():
     pool = Pool(cpu_count()-1,maxtasksperchild=1000)
     # fixation = np.array(map(run_single,range(NUMBER_SIMS))) 
     fixation = np.array([f for f in pool.imap(run_single,range(NUMBER_SIMS))]) 
-    with open(PARENTDIR+'s%.2f_%s_time'%(DELTA,job_id),'a') as wfile:
+    with open(PARENTDIR+'s%.2f_%s.txt'%(DELTA,job_id),'a') as wfile:
         if NUMBER_SIMS%BATCH_SIZE != 0: 
             batch_size=1
         else: 

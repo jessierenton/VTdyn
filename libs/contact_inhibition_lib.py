@@ -56,7 +56,6 @@ def generate_til_fix(simulation,N_step,skip,include_fixed=True):
                 yield tissue
             break
 
-
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #------------------------------------------PRISONER'S-DILEMMA----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -224,6 +223,9 @@ def simulation_contact_inhibition_area_dependent(tissue,dt,N_steps,stepsize,rand
         if rand.rand() < len(division_ready)*division_rate*dt:
             if game is None:
                 mother = rand.choice(division_ready)
+            elif game == "simple":
+                fitnesses = properties["type"][division_ready] * DELTA + 1
+                mother = rand.choice(division_ready, p=fitnesses/sum(fitnesses))
             else:
                 fitnesses = np.array([get_fitness(properties['type'][cell],properties['type'][mesh.neighbours[cell]],DELTA,game,game_constants) 
                                 for cell in division_ready])
